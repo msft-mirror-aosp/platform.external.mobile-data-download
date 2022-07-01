@@ -195,13 +195,14 @@ public final class Offroad2FileDownloader implements FileDownloader {
               .build());
     }
 
-    if (fileDownloaderRequest.trafficTag() > 0) {
+    // TODO(b/237653774): Enable traffic tagging.
+   /* if (fileDownloaderRequest.trafficTag() > 0) {
       // Prefer traffic tag from request.
       requestBuilder.setTrafficStatsTag(fileDownloaderRequest.trafficTag());
     } else if (defaultTrafficTag.isPresent() && defaultTrafficTag.get() > 0) {
       // Use default traffic tag as a fallback if present.
       requestBuilder.setTrafficStatsTag(defaultTrafficTag.get());
-    }
+    }*/
 
     for (Pair<String, String> header : fileDownloaderRequest.extraHttpHeaders()) {
       requestBuilder.addHeader(header.first, header.second);
