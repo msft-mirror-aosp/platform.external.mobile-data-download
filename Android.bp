@@ -34,6 +34,11 @@ java_library {
     srcs: ["android-annotation-stubs/src/**/*.java"],
     host_supported: true,
     sdk_version: "core_current",
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.adservices",
+	"com.android.ondevicepersonalization",
+    ],
 }
 
 android_library {
@@ -54,14 +59,14 @@ android_library {
         "mobile-data-download-populator-java-proto-lite",
         "dagger2",
         "jsr330",
-        "checker-qual",
         "android_downloader_lib",
+        "android_checker_annotation_stubs",
     ],
     libs: [
         "auto_value_annotations",
         "framework-annotations-lib",
         "unsupportedappusage",
-        "android_checker_annotation_stubs",
+        "checker-qual",
     ],
     plugins: [
         "auto_value_plugin",
@@ -73,8 +78,10 @@ android_library {
     apex_available: [
         "//apex_available:platform",
          "com.android.adservices",
+	 "com.android.ondevicepersonalization",
     ],
     visibility: [
         "//packages/modules/AdServices:__subpackages__",
+	"//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
 }
