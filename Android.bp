@@ -37,6 +37,7 @@ java_library {
     apex_available: [
         "//apex_available:platform",
         "com.android.adservices",
+	"com.android.ondevicepersonalization",
     ],
 }
 
@@ -77,8 +78,10 @@ android_library {
     apex_available: [
         "//apex_available:platform",
          "com.android.adservices",
+	 "com.android.ondevicepersonalization",
     ],
     visibility: [
         "//packages/modules/AdServices:__subpackages__",
+	"//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
 }
