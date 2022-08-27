@@ -481,6 +481,16 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
     LogUtil.d("%s: Prepare for downloading manifest file.", TAG);
 
     if (!dedupDownloadWithEtag) {
+      LogUtil.d(
+              "%s: Not relying on etag to dedup manifest -- forcing re-download; urlToDownload = %s;"
+                      + " manifestFileUri = %s",
+              TAG, urlToDownload, manifestFileUri);
+      try {
+        deleteManifestFileChecked(manifestFileUri);
+      } catch (DownloadException e) {
+        return immediateFailedFuture(e);
+      }
+      bookkeepingRef.set(createDefaultManifestFileBookkeeping(urlToDownload));
       return immediateVoidFuture();
     }
 
@@ -531,6 +541,10 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
     LogUtil.d("%s: Finalize for downloading manifest file.", TAG);
 
     if (!dedupDownloadWithEtag) {
+      LogUtil.d(
+              "%s: Not relying on etag to dedup manifest, so the downloaded manifest is"
+                      + " assumed to be the latest; urlToDownload = %s, manifestFileUri = %s",
+              TAG, urlToDownload, manifestFileUri);
       return immediateVoidFuture();
     }
 
