@@ -94,7 +94,7 @@ public final class FileGroupsMetadataUtil {
   }
 
   // TODO(b/129702287): Move away from proto based serialization.
-  public static String getSerializedGroupKey(GroupKey groupKey, Context context) {
+  public static String getSerializedGroupKey(GroupKey groupKey) {
     byte[] byteValue = groupKey.toByteArray();
     return Base64.encodeToString(byteValue, Base64.NO_PADDING | Base64.NO_WRAP);
   }
