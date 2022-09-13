@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package mobiledatadownload.logs;
+
+option java_package = "com.google.mobiledatadownload";
+option java_outer_classname = "LogEnumsProto";
+
+// MDD client side events used for logging with MddLogData.
+//
+// Each feature gets a range of 1000 enums starting at X000. 1st enum specifies
+// if the feature is enabled. Subsequent 999 enums can be used to define events
+// within the feature. Unused enums in the range are left for future use for
+// the *same* feature.
+// If a feature ever exhausts it's quota of enums, it should be migrated to a
+// new range of contiguous 2000 enums by deprecating the existing enums.
+//
+// Enums should never be deleted or reused, but they can be renamed*. Old enums
+// should be left in their position with [deprecated=true] attribute.
+//
+// * For renaming enums, see <internal>
+message MddClientEvent {
+  enum Code {
+    // Do not use this default value.
+    EVENT_CODE_UNSPECIFIED = 0;
+
+    // Events for Mobile Data Download (<internal>) (1000-1999).
+    // Next enum for data download: 1114
+
+    // Log in a periodic tasks.
+    // Logged with DataDownloadFileGroupStats, MddFileGroupStatus.
+    DATA_DOWNLOAD_FILE_GROUP_STATUS = 1044;
+
+    reserved 1000 to 1043, 1045 to 1113;
+
+    reserved 2000 to 2999, 3000 to 3999, 4000 to 4099, 4100 to 4199,
+        5000 to 5999, 6000 to 6999, 7000 to 7999, 8000 to 8999, 9000 to 9999,
+        10000 to 10999, 11000 to 11999, 12000 to 12999, 13000, 13999,
+        14000 to 14999, 15000 to 15999, 16000 to 16999, 17000 to 17999,
+        18000 to 18999, 19000 to 19999;
+  }
+}
+
+message MddFileGroupDownloadStatus {
+  enum Code {
+    INVALID = 0;
+    COMPLETE = 1;
+    PENDING = 2;
+    FAILED = 3;
+  }
+}
