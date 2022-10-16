@@ -78,4 +78,9 @@ android_library {
     visibility: [
         "//packages/modules/AdServices:__subpackages__",
     ],
+    errorprone: {
+        javacflags: [
+            "-Xep:NoCanIgnoreReturnValueOnClasses:WARN",
+        ],
+    },
 }
