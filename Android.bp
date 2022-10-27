@@ -84,4 +84,9 @@ android_library {
         "//packages/modules/AdServices:__subpackages__",
 	"//packages/modules/OnDevicePersonalization:__subpackages__",
     ],
+    errorprone: {
+        javacflags: [
+            "-Xep:NoCanIgnoreReturnValueOnClasses:WARN",
+        ],
+    },
 }
