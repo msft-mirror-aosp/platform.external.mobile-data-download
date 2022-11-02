@@ -151,7 +151,7 @@ public class FileGroupsMetadataTest {
 
   @Test
   public void serializeAndDeserializeFileGroupKey() throws Exception {
-    String serializedGroupKey = FileGroupsMetadataUtil.getSerializedGroupKey(testKey);
+    String serializedGroupKey = FileGroupsMetadataUtil.getSerializedGroupKey(testKey, context);
     GroupKey deserializedGroupKey = FileGroupsMetadataUtil.deserializeGroupKey(serializedGroupKey);
 
     assertThat(deserializedGroupKey.getGroupName()).isEqualTo(TEST_GROUP);
@@ -589,8 +589,8 @@ public class FileGroupsMetadataTest {
    * previous metadata can still be parsed.
    */
   boolean writeDataFileGroup(
-    GroupKey groupKey, DataFileGroup fileGroup, Optional<String> instanceId) {
-    String serializedGroupKey = FileGroupsMetadataUtil.getSerializedGroupKey(groupKey);
+      GroupKey groupKey, DataFileGroup fileGroup, Optional<String> instanceId) {
+    String serializedGroupKey = FileGroupsMetadataUtil.getSerializedGroupKey(groupKey, context);
     SharedPreferences prefs =
         SharedPreferencesUtil.getSharedPreferences(
             context, FileGroupsMetadataUtil.MDD_FILE_GROUPS, instanceId);
