@@ -23,6 +23,9 @@ import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFluentF
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.mobiledatadownload.LogProto.StableSamplingInfo;
+import com.google.protobuf.Timestamp;
+
 import java.util.Random;
 
 /** Class responsible for sampling events. */
@@ -58,8 +61,8 @@ public final class LogSampler {
    *     Optional if the event should not be logged. If the event should be logged, the returned
    *     Void should be attached to the log event.
    */
-  public ListenableFuture<Optional<Void>> shouldLog(
-      long sampleInterval, Optional<LoggingStateStore> loggingStateStore) {
+  public ListenableFuture<Optional<StableSamplingInfo>> shouldLog(
+          long sampleInterval, Optional<LoggingStateStore> loggingStateStore) {
     if (sampleInterval == 0L) {
       return immediateFuture(Optional.absent());
     } else if (sampleInterval < 0L) {
@@ -78,9 +81,10 @@ public final class LogSampler {
    * @return if the event should be sampled, returns the Void with stable_sampling_used = false.
    *     Otherwise, returns an empty Optional.
    */
-  private ListenableFuture<Optional<Void>> shouldLogPerEvent(long sampleInterval) {
+  private ListenableFuture<Optional<StableSamplingInfo>> shouldLogPerEvent(long sampleInterval) {
     if (shouldSamplePerEvent(sampleInterval)) {
-      return immediateFuture(Optional.absent());
+      return immediateFuture(
+              Optional.of(StableSamplingInfo.newBuilder().setStableSamplingUsed(false).build()));
     } else {
       return immediateFuture(Optional.absent());
     }
@@ -103,24 +107,33 @@ public final class LogSampler {
    * @return if the event should be sampled, returns the Void with stable_sampling_used = true and
    *     all other fields populated. Otherwise, returns an empty Optional.
    */
-  private ListenableFuture<Optional<Void>> shouldLogDeviceStable(
-      long sampleInterval, LoggingStateStore loggingStateStore) {
+  private ListenableFuture<Optional<StableSamplingInfo>> shouldLogDeviceStable(
+          long sampleInterval, LoggingStateStore loggingStateStore) {
     return PropagatedFluentFuture.from(loggingStateStore.getStableSamplingInfo())
-        .transform(
-            samplingInfo -> {
-              boolean invalidSamplingRateUsed = ((100 % sampleInterval) != 0);
-              if (invalidSamplingRateUsed) {
-                LogUtil.e(
-                    "Bad sample interval (1 percent cohort will not log): %d", sampleInterval);
-              }
+            .transform(
+                    samplingInfo -> {
+                      boolean invalidSamplingRateUsed = ((100 % sampleInterval) != 0);
+                      if (invalidSamplingRateUsed) {
+                        LogUtil.e(
+                                "Bad sample interval (1 percent cohort will not log): %d", sampleInterval);
+                      }
 
-              if (!isPartOfSample(samplingInfo.getStableLogSamplingSalt(), sampleInterval)) {
-                return Optional.absent();
-              }
+                      if (!isPartOfSample(samplingInfo.getStableLogSamplingSalt(), sampleInterval)) {
+                        return Optional.absent();
+                      }
 
-              return Optional.absent();
-            },
-            directExecutor());
+                      return Optional.of(
+                              StableSamplingInfo.newBuilder()
+                                      .setStableSamplingUsed(true)
+                                      .setStableSamplingFirstEnabledTimestampMs(
+                                              toMillis(samplingInfo.getLogSamplingSaltSetTimestamp()))
+                                      .setPartOfAlwaysLoggingGroup(
+                                              isPartOfSample(
+                                                      samplingInfo.getStableLogSamplingSalt(), /*sampleInterval=*/ 100))
+                                      .setInvalidSamplingRateUsed(invalidSamplingRateUsed)
+                                      .build());
+                    },
+                    directExecutor());
   }
 
   /**
@@ -129,5 +142,11 @@ public final class LogSampler {
    */
   private boolean isPartOfSample(long randomNumber, long sampleInterval) {
     return randomNumber % sampleInterval == 0;
+  }
+
+  // Copy from com.google.protobuf.util.Timestamps
+  // TODO(b/243397277) Remove toMillis.
+  private static long toMillis(Timestamp timestamp) {
+    return timestamp.getSeconds() * 1000L + (long)timestamp.getNanos() / 1000000L;
   }
 }

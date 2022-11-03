@@ -29,6 +29,16 @@ import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent.Code;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
+import com.google.mobiledatadownload.LogProto.AndroidClientInfo;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
+import com.google.mobiledatadownload.LogProto.MddDeviceInfo;
+import com.google.mobiledatadownload.LogProto.MddDownloadResultLog;
+import com.google.mobiledatadownload.LogProto.MddLogData;
+import com.google.mobiledatadownload.LogProto.MddStorageStats;
+import com.google.mobiledatadownload.LogProto.StableSamplingInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -50,7 +60,7 @@ public final class MddEventLogger implements EventLogger {
   private Optional<LoggingStateStore> loggingStateStore = Optional.absent();
 
   public MddEventLogger(
-      Context context, Logger logger, int moduleVersion, LogSampler logSampler, Flags flags) {
+          Context context, Logger logger, int moduleVersion, LogSampler logSampler, Flags flags) {
     this.context = context;
     this.logger = logger;
     this.moduleVersion = moduleVersion;
@@ -78,11 +88,11 @@ public final class MddEventLogger implements EventLogger {
 
   @Override
   public void logEventSampled(
-      int eventCode,
-      String fileGroupName,
-      int fileGroupVersionNumber,
-      long buildId,
-      String variantId) {
+          int eventCode,
+          String fileGroupName,
+          int fileGroupVersionNumber,
+          long buildId,
+          String variantId) {
 
     Void dataDownloadFileGroupStats = null;
   }
@@ -110,83 +120,99 @@ public final class MddEventLogger implements EventLogger {
 
   @Override
   public ListenableFuture<Void> logMddFileGroupStats(
-      AsyncCallable<List<EventLogger.FileGroupStatusWithDetails>> buildFileGroupStats) {
+          AsyncCallable<List<EventLogger.FileGroupStatusWithDetails>> buildFileGroupStats) {
     return lazySampleAndSendLogEvent(
-        0,
-        () ->
-            PropagatedFutures.transform(
-                buildFileGroupStats.call(),
-                fileGroupStatusAndDetailsList -> {
-                  List<Void> allIcingLogData = new ArrayList<>();
+            Code.DATA_DOWNLOAD_FILE_GROUP_STATUS,
+            () ->
+                    PropagatedFutures.transform(
+                            buildFileGroupStats.call(),
+                            fileGroupStatusAndDetailsList -> {
+                              List<MddLogData> allMddLogData = new ArrayList<>();
 
-                  for (FileGroupStatusWithDetails fileGroupStatusAndDetails :
-                      fileGroupStatusAndDetailsList) {
-                    allIcingLogData.add(null);
-                  }
-                  return allIcingLogData;
-                },
-                directExecutor()),
-        flags.groupStatsLoggingSampleInterval());
+                              for (FileGroupStatusWithDetails fileGroupStatusAndDetails :
+                                      fileGroupStatusAndDetailsList) {
+                                allMddLogData.add(
+                                        MddLogData.newBuilder()
+                                                .setMddFileGroupStatus(fileGroupStatusAndDetails.fileGroupStatus())
+                                                .setDataDownloadFileGroupStats(
+                                                        fileGroupStatusAndDetails.fileGroupDetails())
+                                                .build());
+                              }
+                              return allMddLogData;
+                            },
+                            directExecutor()),
+            flags.groupStatsLoggingSampleInterval());
   }
 
   @Override
-  public ListenableFuture<Void> logMddStorageStats(AsyncCallable<Void> buildStorageStats) {
+  public ListenableFuture<Void> logMddStorageStats(
+          AsyncCallable<MddStorageStats> buildStorageStats) {
     return lazySampleAndSendLogEvent(
-        0,
-        () ->
-            PropagatedFutures.transform(
-                buildStorageStats.call(), storageStats -> Arrays.asList(), directExecutor()),
-        flags.storageStatsLoggingSampleInterval());
+            Code.DATA_DOWNLOAD_STORAGE_STATS,
+            () ->
+                    PropagatedFutures.transform(
+                            buildStorageStats.call(),
+                            storageStats ->
+                                    Arrays.asList(MddLogData.newBuilder().setMddStorageStats(storageStats).build()),
+                            directExecutor()),
+            flags.storageStatsLoggingSampleInterval());
   }
 
   @Override
   public ListenableFuture<Void> logMddNetworkStats(AsyncCallable<Void> buildNetworkStats) {
     return lazySampleAndSendLogEvent(
-        0,
-        () ->
-            PropagatedFutures.transform(
-                buildNetworkStats.call(), networkStats -> Arrays.asList(), directExecutor()),
-        flags.networkStatsLoggingSampleInterval());
+            Code.EVENT_CODE_UNSPECIFIED,
+            () ->
+                    PropagatedFutures.transform(
+                            buildNetworkStats.call(), networkStats -> Arrays.asList(), directExecutor()),
+            flags.networkStatsLoggingSampleInterval());
   }
 
   @Override
   public void logMddDataDownloadFileExpirationEvent(int eventCode, int count) {
-    Void logData = null;
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    MddLogData.Builder logData = null;
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
   public void logMddNetworkSavings(
-      Void fileGroupDetails,
-      int code,
-      long fullFileSize,
-      long downloadedFileSize,
-      String fileId,
-      int deltaIndex) {
-    Void logData = null;
+          Void fileGroupDetails,
+          int code,
+          long fullFileSize,
+          long downloadedFileSize,
+          String fileId,
+          int deltaIndex) {
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
   public void logMddQueryStats(Void fileGroupDetails) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
   public void logMddDownloadLatency(Void fileGroupDetails, Void downloadLatency) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
-  public void logMddDownloadResult(int code, Void fileGroupDetails) {
-    Void logData = null;
+  public void logMddDownloadResult(
+          MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails) {
+    MddLogData.Builder logData =
+            MddLogData.newBuilder()
+                    .setMddDownloadResultLog(
+                            MddDownloadResultLog.newBuilder()
+                                    .setResult(code)
+                                    .setDataDownloadFileGroupStats(fileGroupDetails));
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(
+            Code.DATA_DOWNLOAD_RESULT_LOG, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
@@ -202,9 +228,9 @@ public final class MddEventLogger implements EventLogger {
 
   @Override
   public void logMddUsageEvent(Void fileGroupDetails, Void usageEventLog) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   /**
@@ -213,63 +239,89 @@ public final class MddEventLogger implements EventLogger {
    * constructs the log event lazy. This is useful if constructing the log event is expensive.
    */
   private ListenableFuture<Void> lazySampleAndSendLogEvent(
-      int eventCode, AsyncCallable<List<Void>> buildStats, int sampleInterval) {
+          Code eventCode, AsyncCallable<List<MddLogData>> buildStats, int sampleInterval) {
     return PropagatedFutures.transformAsync(
-        logSampler.shouldLog(sampleInterval, loggingStateStore),
-        samplingInfoOptional -> {
-          if (!samplingInfoOptional.isPresent()) {
-            return immediateVoidFuture();
-          }
+            logSampler.shouldLog(sampleInterval, loggingStateStore),
+            samplingInfoOptional -> {
+              if (!samplingInfoOptional.isPresent()) {
+                return immediateVoidFuture();
+              }
 
-          return FluentFuture.from(buildStats.call())
-              .transform(
-                  icingLogDataList -> {
-                    if (icingLogDataList != null) {
-                      for (Void icingLogData : icingLogDataList) {
-                        processAndSendEvent(
-                            eventCode, null, sampleInterval, samplingInfoOptional.get());
-                      }
-                    }
-                    return null;
-                  },
-                  directExecutor());
-        },
-        directExecutor());
+              return FluentFuture.from(buildStats.call())
+                      .transform(
+                              icingLogDataList -> {
+                                if (icingLogDataList != null) {
+                                  for (MddLogData icingLogData : icingLogDataList) {
+                                    processAndSendEvent(
+                                            eventCode,
+                                            icingLogData.toBuilder(),
+                                            sampleInterval,
+                                            samplingInfoOptional.get());
+                                  }
+                                }
+                                return null;
+                              },
+                              directExecutor());
+            },
+            directExecutor());
   }
 
-  private void sampleAndSendLogEvent(int eventCode, Void logData, long sampleInterval) {
+  private void sampleAndSendLogEvent(
+          MddClientEvent.Code eventCode, MddLogData.Builder logData, long sampleInterval) {
     PropagatedFutures.addCallback(
-        logSampler.shouldLog(sampleInterval, loggingStateStore),
-        new FutureCallback<Optional<Void>>() {
-          @Override
-          public void onSuccess(Optional<Void> stableSamplingInfo) {
-            if (stableSamplingInfo.isPresent()) {
-              processAndSendEvent(eventCode, logData, sampleInterval, stableSamplingInfo.get());
-            }
-          }
+            logSampler.shouldLog(sampleInterval, loggingStateStore),
+            new FutureCallback<Optional<StableSamplingInfo>>() {
+              @Override
+              public void onSuccess(Optional<StableSamplingInfo> stableSamplingInfo) {
+                if (stableSamplingInfo.isPresent()) {
+                  processAndSendEvent(eventCode, logData, sampleInterval, stableSamplingInfo.get());
+                }
+              }
 
-          @Override
-          public void onFailure(Throwable t) {
-            LogUtil.e(t, "%s: failure when sampling log!", TAG);
-          }
-        },
-        directExecutor());
+              @Override
+              public void onFailure(Throwable t) {
+                LogUtil.e(t, "%s: failure when sampling log!", TAG);
+              }
+            },
+            directExecutor());
   }
 
   /** Adds all transforms common to all logs and sends the event to Logger. */
   private void processAndSendEventWithoutStableSampling(
-      int eventCode, Void logData, long sampleInterval) {
-    processAndSendEvent(eventCode, logData, sampleInterval, null);
+          int eventCode, Void logData, long sampleInterval) {
+    processAndSendEvent(
+            Code.EVENT_CODE_UNSPECIFIED,
+            MddLogData.newBuilder(),
+            sampleInterval,
+            StableSamplingInfo.newBuilder().setStableSamplingUsed(false).build());
   }
 
   /** Adds all transforms common to all logs and sends the event to Logger. */
   private void processAndSendEvent(
-      int eventCode, Void logData, long sampleInterval, Void stableSamplingInfo) {}
+          Code eventCode,
+          MddLogData.Builder logData,
+          long sampleInterval,
+          StableSamplingInfo stableSamplingInfo) {
+    if (eventCode.equals(Code.EVENT_CODE_UNSPECIFIED)) {
+      LogUtil.e("%s: unspecified code used, skipping event log", TAG);
+      // return early for unspecified codes.
+      return;
+    }
+    logData
+            .setSamplingInterval(sampleInterval)
+            .setDeviceInfo(MddDeviceInfo.newBuilder().setDeviceStorageLow(isDeviceStorageLow(context)))
+            .setAndroidClientInfo(
+                    AndroidClientInfo.newBuilder()
+                            .setHostPackageName(hostPackageName)
+                            .setModuleVersion(moduleVersion))
+            .setStableSamplingInfo(stableSamplingInfo);
+    logger.log(logData.build(), eventCode.getNumber());
+  }
 
   /** Returns whether the device is in low storage state. */
   private static boolean isDeviceStorageLow(Context context) {
     // Check if the system says storage is low, by reading the sticky intent.
     return context.registerReceiver(null, new IntentFilter(Intent.ACTION_DEVICE_STORAGE_LOW))
-        != null;
+            != null;
   }
 }
