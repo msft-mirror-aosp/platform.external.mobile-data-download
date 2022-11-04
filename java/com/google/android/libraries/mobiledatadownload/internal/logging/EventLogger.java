@@ -18,8 +18,11 @@ package com.google.android.libraries.mobiledatadownload.internal.logging;
 import com.google.auto.value.AutoValue;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
 import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.mobiledatadownload.LogProto.MddFileGroupStatus;
+import com.google.mobiledatadownload.LogProto.MddStorageStats;
+
 import java.util.List;
 
 /** Interface for remote logging. */
@@ -79,7 +82,7 @@ public interface EventLogger {
    * @return a future that completes when the logging work is done. The future will complete with a
    *     failure if the callable fails or if there is an error when logging.
    */
-  ListenableFuture<Void> logMddStorageStats(AsyncCallable<Void> buildMddStorageStats);
+  ListenableFuture<Void> logMddStorageStats(AsyncCallable<MddStorageStats> buildMddStorageStats);
 
   /**
    * Log mdd network stats. The buildMddNetworkStats callable is only called if the event is going
@@ -104,7 +107,8 @@ public interface EventLogger {
           int deltaIndex);
 
   /** Log mdd download result events. */
-  void logMddDownloadResult(int code, Void fileGroupDetails);
+  void logMddDownloadResult(
+          MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails);
 
   /** Log stats of mdd {@code getFileGroup} and {@code getFileGroupByFilter} calls. */
   void logMddQueryStats(Void fileGroupDetails);

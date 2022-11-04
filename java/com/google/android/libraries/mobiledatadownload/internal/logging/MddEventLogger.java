@@ -29,10 +29,15 @@ import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
 import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent.Code;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
 import com.google.mobiledatadownload.LogProto.AndroidClientInfo;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.mobiledatadownload.LogProto.MddDeviceInfo;
+import com.google.mobiledatadownload.LogProto.MddDownloadResultLog;
 import com.google.mobiledatadownload.LogProto.MddLogData;
+import com.google.mobiledatadownload.LogProto.MddStorageStats;
 import com.google.mobiledatadownload.LogProto.StableSamplingInfo;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -140,12 +145,16 @@ public final class MddEventLogger implements EventLogger {
   }
 
   @Override
-  public ListenableFuture<Void> logMddStorageStats(AsyncCallable<Void> buildStorageStats) {
+  public ListenableFuture<Void> logMddStorageStats(
+          AsyncCallable<MddStorageStats> buildStorageStats) {
     return lazySampleAndSendLogEvent(
-            Code.EVENT_CODE_UNSPECIFIED,
+            Code.DATA_DOWNLOAD_STORAGE_STATS,
             () ->
                     PropagatedFutures.transform(
-                            buildStorageStats.call(), storageStats -> Arrays.asList(), directExecutor()),
+                            buildStorageStats.call(),
+                            storageStats ->
+                                    Arrays.asList(MddLogData.newBuilder().setMddStorageStats(storageStats).build()),
+                            directExecutor()),
             flags.storageStatsLoggingSampleInterval());
   }
 
@@ -161,8 +170,8 @@ public final class MddEventLogger implements EventLogger {
 
   @Override
   public void logMddDataDownloadFileExpirationEvent(int eventCode, int count) {
-    Void logData = null;
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    MddLogData.Builder logData = null;
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
@@ -173,30 +182,37 @@ public final class MddEventLogger implements EventLogger {
           long downloadedFileSize,
           String fileId,
           int deltaIndex) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
   public void logMddQueryStats(Void fileGroupDetails) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
   public void logMddDownloadLatency(Void fileGroupDetails, Void downloadLatency) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
-  public void logMddDownloadResult(int code, Void fileGroupDetails) {
-    Void logData = null;
+  public void logMddDownloadResult(
+          MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails) {
+    MddLogData.Builder logData =
+            MddLogData.newBuilder()
+                    .setMddDownloadResultLog(
+                            MddDownloadResultLog.newBuilder()
+                                    .setResult(code)
+                                    .setDataDownloadFileGroupStats(fileGroupDetails));
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(
+            Code.DATA_DOWNLOAD_RESULT_LOG, logData, flags.mddDefaultSampleInterval());
   }
 
   @Override
@@ -212,9 +228,9 @@ public final class MddEventLogger implements EventLogger {
 
   @Override
   public void logMddUsageEvent(Void fileGroupDetails, Void usageEventLog) {
-    Void logData = null;
+    MddLogData.Builder logData = null;
 
-    sampleAndSendLogEvent(0, logData, flags.mddDefaultSampleInterval());
+    sampleAndSendLogEvent(Code.EVENT_CODE_UNSPECIFIED, logData, flags.mddDefaultSampleInterval());
   }
 
   /**
@@ -250,18 +266,15 @@ public final class MddEventLogger implements EventLogger {
             directExecutor());
   }
 
-  private void sampleAndSendLogEvent(int eventCode, Void logData, long sampleInterval) {
+  private void sampleAndSendLogEvent(
+          MddClientEvent.Code eventCode, MddLogData.Builder logData, long sampleInterval) {
     PropagatedFutures.addCallback(
             logSampler.shouldLog(sampleInterval, loggingStateStore),
             new FutureCallback<Optional<StableSamplingInfo>>() {
               @Override
               public void onSuccess(Optional<StableSamplingInfo> stableSamplingInfo) {
                 if (stableSamplingInfo.isPresent()) {
-                  processAndSendEvent(
-                          Code.EVENT_CODE_UNSPECIFIED,
-                          MddLogData.newBuilder(),
-                          sampleInterval,
-                          stableSamplingInfo.get());
+                  processAndSendEvent(eventCode, logData, sampleInterval, stableSamplingInfo.get());
                 }
               }
 
