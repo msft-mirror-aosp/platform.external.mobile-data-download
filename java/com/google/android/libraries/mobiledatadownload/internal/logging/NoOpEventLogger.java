@@ -19,6 +19,9 @@ import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
 
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
+import com.google.mobiledatadownload.LogProto.MddStorageStats;
 import java.util.List;
 
 /** No-Op EventLogger implementation. */
@@ -48,7 +51,8 @@ public final class NoOpEventLogger implements EventLogger {
   public void logMddApiCallStats(Void fileGroupDetails, Void apiCallStats) {}
 
   @Override
-  public ListenableFuture<Void> logMddStorageStats(AsyncCallable<Void> buildMddStorageStats) {
+  public ListenableFuture<Void> logMddStorageStats(
+          AsyncCallable<MddStorageStats> buildStorageStats) {
     return immediateVoidFuture();
   }
 
@@ -70,7 +74,8 @@ public final class NoOpEventLogger implements EventLogger {
       int deltaIndex) {}
 
   @Override
-  public void logMddDownloadResult(int code, Void fileGroupDetails) {}
+  public void logMddDownloadResult(
+          MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails) {}
 
   @Override
   public void logMddQueryStats(Void fileGroupDetails) {}
