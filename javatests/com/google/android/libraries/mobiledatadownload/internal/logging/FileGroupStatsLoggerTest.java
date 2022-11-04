@@ -24,10 +24,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.util.Pair;
-import com.google.android.libraries.mdi.download.MetadataProto.DataFile;
-import com.google.android.libraries.mdi.download.MetadataProto.DataFileGroupBookkeeping;
-import com.google.android.libraries.mdi.download.MetadataProto.DataFileGroupInternal;
-import com.google.android.libraries.mdi.download.MetadataProto.GroupKey;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupBookkeeping;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
+import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import com.google.android.libraries.mobiledatadownload.internal.FileGroupManager;
 import com.google.android.libraries.mobiledatadownload.internal.FileGroupManager.GroupDownloadStatus;
 import com.google.android.libraries.mobiledatadownload.internal.FileGroupsMetadata;
