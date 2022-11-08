@@ -115,7 +115,7 @@ android_library {
     visibility: [
         "//packages/modules/AdServices:__subpackages__",
 	"//packages/modules/OnDevicePersonalization:__subpackages__",
-        ":__subpackages__",
+    ":__subpackages__",
     ],
     errorprone: {
         javacflags: [
