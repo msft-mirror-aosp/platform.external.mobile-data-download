@@ -21,7 +21,7 @@ import static java.nio.charset.StandardCharsets.UTF_16;
 import android.content.Context;
 import android.net.Uri;
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
+import org.robolectric.RobolectricTestRunner;
 import com.google.android.libraries.mobiledatadownload.SilentFeedback;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.android.libraries.mobiledatadownload.file.backends.AndroidFileBackend;
@@ -62,7 +62,7 @@ import org.mockito.junit.MockitoRule;
  * Emulator tests for MDD isolated structures support. This is separate from the other robolectric
  * tests because android.os.symlink and android.os.readlink do not work with robolectric.
  */
-@RunWith(AndroidJUnit4.class)
+@RunWith(RobolectricTestRunner.class)
 public final class MddIsolatedStructuresTest {
 
   private static final String TEST_GROUP = "test-group";

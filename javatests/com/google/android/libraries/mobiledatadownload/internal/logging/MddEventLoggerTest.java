@@ -22,7 +22,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -106,30 +105,31 @@ public class MddEventLoggerTest {
         assertTrue(LogUtil.shouldSampleInterval(1));
     }
 
-    @Test
-    public void testLogMddEvents_noLog() throws Exception {
-        overrideDefaultSampleInterval(SAMPLING_NEVER);
+// TODO: (b/239218521) Test will be ready once mockto v4 is available
+//     @Test
+//     public void testLogMddEvents_noLog() throws Exception {
+//         overrideDefaultSampleInterval(SAMPLING_NEVER);
 
-        DataDownloadFileGroupStats fileGroupStats =
-                DataDownloadFileGroupStats.newBuilder()
-                        .setFileGroupName("fileGroup")
-                        .setFileGroupVersionNumber(1)
-                        .setBuildId(123)
-                        .setVariantId("testVariant")
-                        .build();
-        MddFileGroupStatus fileGroupStatus =
-                MddFileGroupStatus.newBuilder()
-                        .setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.COMPLETE)
-                        .build();
-        FileGroupStatusWithDetails fileGroupStatusWithDetails =
-                FileGroupStatusWithDetails.create(fileGroupStatus, fileGroupStats);
+//         DataDownloadFileGroupStats fileGroupStats =
+//                 DataDownloadFileGroupStats.newBuilder()
+//                         .setFileGroupName("fileGroup")
+//                         .setFileGroupVersionNumber(1)
+//                         .setBuildId(123)
+//                         .setVariantId("testVariant")
+//                         .build();
+//         MddFileGroupStatus fileGroupStatus =
+//                 MddFileGroupStatus.newBuilder()
+//                         .setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.COMPLETE)
+//                         .build();
+//         FileGroupStatusWithDetails fileGroupStatusWithDetails =
+//                 FileGroupStatusWithDetails.create(fileGroupStatus, fileGroupStats);
 
-        mddEventLogger
-                .logMddFileGroupStats(() -> immediateFuture(ImmutableList.of(fileGroupStatusWithDetails)))
-                .get();
+//         mddEventLogger
+//                 .logMddFileGroupStats(() -> immediateFuture(ImmutableList.of(fileGroupStatusWithDetails)))
+//                 .get();
 
-        verifyNoInteractions(mockLogger);
-    }
+//         verifyNoInteractions(mockLogger);
+//     }
 
     @Test
     public void testLogMddEvents() throws Exception {
