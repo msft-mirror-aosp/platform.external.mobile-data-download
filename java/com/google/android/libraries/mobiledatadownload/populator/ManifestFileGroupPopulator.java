@@ -109,6 +109,11 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
     ListenableFuture<ManifestConfig> parse(Uri fileUri);
   }
 
+  /** Client-provided supplier of a condition whether the populator should be enabled. */
+  public interface EnabledSupplier {
+    boolean isEnabled();
+  }
+
   /** Builder for {@link ManifestFileGroupPopulator}. */
   public static final class Builder {
     private boolean allowsInsecureHttp = false;
@@ -124,6 +129,8 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
     private Optional<ManifestConfigOverrider> overriderOptional = Optional.absent();
     private Optional<String> instanceIdOptional = Optional.absent();
     private Flags flags = new Flags() {};
+    // Enabled the populator if no EnabledSupplier is provided.
+    private EnabledSupplier enabledSupplier = () -> true;
 
     /**
      * Sets the flag that allows insecure http.
@@ -211,6 +218,15 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
       return this;
     }
 
+    /**
+     * Sets the condition to check whether the populator should be enabled. If the value, returned
+     * by the condition is {@code false}, {@code refreshFileGroups} should do nothing.
+     */
+    public Builder setEnabledSupplier(EnabledSupplier enabledSupplier) {
+      this.enabledSupplier = enabledSupplier;
+      return this;
+    }
+
     public ManifestFileGroupPopulator build() {
       Preconditions.checkNotNull(context, "Must call setContext() before build().");
       Preconditions.checkNotNull(
@@ -242,6 +258,7 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
   private final FileGroupPopulatorLogger eventLogger;
   // We use futureSerializer for synchronization.
   private final ExecutionSequencer futureSerializer = ExecutionSequencer.create();
+  private final EnabledSupplier enabledSupplier;
 
   /** Returns a Builder for {@link ManifestFileGroupPopulator}. */
   public static Builder builder() {
@@ -262,6 +279,7 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
     this.overriderOptional = builder.overriderOptional;
     this.eventLogger = new FileGroupPopulatorLogger(builder.logger, builder.flags);
     this.manifestFileMetadataStore = builder.manifestFileMetadataStore;
+    this.enabledSupplier = builder.enabledSupplier;
   }
 
   @Override
@@ -288,6 +306,10 @@ public final class ManifestFileGroupPopulator implements FileGroupPopulator {
 
   private ListenableFuture<Void> refreshFileGroups(
       MobileDataDownload mobileDataDownload, ManifestFileFlag manifestFileFlag) {
+    if(!enabledSupplier.isEnabled()){
+      LogUtil.d("%s: The populator was disabled by enabledSupplier", TAG);
+      return immediateVoidFuture();
+    }
 
     if (!validate(manifestFileFlag)) {
       logRefreshResult(0, manifestFileFlag);
