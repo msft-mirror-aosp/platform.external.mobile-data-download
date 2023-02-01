@@ -117,4 +117,9 @@ android_library {
 	"//packages/modules/OnDevicePersonalization:__subpackages__",
         ":__subpackages__",
     ],
+    errorprone: {
+        javacflags: [
+            "-Xep:NoCanIgnoreReturnValueOnClasses:WARN",
+        ],
+    },
 }
