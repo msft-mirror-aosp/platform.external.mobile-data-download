@@ -15,6 +15,15 @@
 // limitations under the License.
 //
 
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "mobile_data_downloader_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["mobile_data_downloader_license"],
+}
+
 java_library {
     name: "mobile-data-download-populator-java-proto-lite",
     proto: {
