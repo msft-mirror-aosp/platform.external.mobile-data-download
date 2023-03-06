@@ -16,12 +16,14 @@
 package com.google.android.libraries.mobiledatadownload.internal;
 
 import static com.google.common.truth.Truth.assertThat;
+
 import static java.nio.charset.StandardCharsets.UTF_16;
 
 import android.content.Context;
 import android.net.Uri;
+
 import androidx.test.core.app.ApplicationProvider;
-import org.robolectric.RobolectricTestRunner;
+
 import com.google.android.libraries.mobiledatadownload.SilentFeedback;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.android.libraries.mobiledatadownload.file.backends.AndroidFileBackend;
@@ -47,9 +49,7 @@ import com.google.mobiledatadownload.internal.MetadataProto.FileStatus;
 import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import com.google.mobiledatadownload.internal.MetadataProto.NewFileKey;
 import com.google.mobiledatadownload.internal.MetadataProto.SharedFile;
-import java.util.Arrays;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,6 +57,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.robolectric.RobolectricTestRunner;
+
+import java.util.Arrays;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * Emulator tests for MDD isolated structures support. This is separate from the other robolectric
