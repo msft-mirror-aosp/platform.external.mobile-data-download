@@ -18,6 +18,7 @@ package com.google.android.libraries.mobiledatadownload.internal.logging;
 
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,7 +27,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+
 import androidx.test.core.app.ApplicationProvider;
+
 import com.google.android.libraries.mobiledatadownload.Logger;
 import com.google.android.libraries.mobiledatadownload.internal.logging.EventLogger.FileGroupStatusWithDetails;
 import com.google.android.libraries.mobiledatadownload.testing.FakeTimeSource;
@@ -41,8 +44,7 @@ import com.google.mobiledatadownload.LogProto.MddDeviceInfo;
 import com.google.mobiledatadownload.LogProto.MddFileGroupStatus;
 import com.google.mobiledatadownload.LogProto.MddLogData;
 import com.google.mobiledatadownload.LogProto.StableSamplingInfo;
-import java.security.SecureRandom;
-import java.util.Random;
+
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,16 +54,21 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 
+import java.security.SecureRandom;
+import java.util.Random;
+
 @RunWith(RobolectricTestRunner.class)
 public class MddEventLoggerTest {
 
-    @Rule public final MockitoRule mocks = MockitoJUnit.rule();
+    @Rule
+    public final MockitoRule mocks = MockitoJUnit.rule();
 
     private static final int SOME_MODULE_VERSION = 42;
     private static final int SAMPLING_ALWAYS = 1;
     private static final int SAMPLING_NEVER = 0;
 
-    @Mock private Logger mockLogger;
+    @Mock
+    private Logger mockLogger;
     private MddEventLogger mddEventLogger;
 
     private final Context context = ApplicationProvider.getApplicationContext();
@@ -80,7 +87,8 @@ public class MddEventLoggerTest {
                         flags);
         mddEventLogger.setLoggingStateStore(
                 SharedPreferencesLoggingState.create(
-                        () -> loggingStateSharedPrefs, new FakeTimeSource(), directExecutor(), new Random(0)));
+                        () -> loggingStateSharedPrefs, new FakeTimeSource(), directExecutor(),
+                        new Random(0)));
     }
 
     private MddLogData.Builder newLogDataBuilderWithClientInfo() {
@@ -125,7 +133,8 @@ public class MddEventLoggerTest {
                 FileGroupStatusWithDetails.create(fileGroupStatus, fileGroupStats);
 
         mddEventLogger
-                .logMddFileGroupStats(() -> immediateFuture(ImmutableList.of(fileGroupStatusWithDetails)))
+                .logMddFileGroupStats(
+                        () -> immediateFuture(ImmutableList.of(fileGroupStatusWithDetails)))
                 .get();
 
         verifyNoInteractions(mockLogger);
@@ -159,11 +168,13 @@ public class MddEventLoggerTest {
                         .build();
 
         mddEventLogger
-                .logMddFileGroupStats(() -> immediateFuture(ImmutableList.of(fileGroupStatusWithDetails)))
+                .logMddFileGroupStats(
+                        () -> immediateFuture(ImmutableList.of(fileGroupStatusWithDetails)))
                 .get();
 
         verify(mockLogger)
-                .log(eq(expectedData), eq(MddClientEvent.Code.DATA_DOWNLOAD_FILE_GROUP_STATUS_VALUE));
+                .log(eq(expectedData),
+                        eq(MddClientEvent.Code.DATA_DOWNLOAD_FILE_GROUP_STATUS_VALUE));
     }
 
     private void overrideDefaultSampleInterval(int sampleInterval) {

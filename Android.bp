@@ -37,7 +37,40 @@ java_library {
     apex_available: [
         "//apex_available:platform",
         "com.android.adservices",
+        "com.android.extservices",
 	"com.android.ondevicepersonalization",
+    ],
+}
+
+android_library {
+        name: "mdd-robolectric-library",
+    srcs: [
+        "javatests/com/google/android/libraries/mobiledatadownload/internal/MddTestUtil.java",
+        "javatests/com/google/android/libraries/mobiledatadownload/testing/**/*.java",
+        "java/com/google/android/libraries/mobiledatadownload/file/common/testing/FakeFileBackend.java",
+        "java/com/google/android/libraries/mobiledatadownload/file/common/testing/TemporaryUri.java",
+    ],
+    exclude_srcs: [
+        // TODO: (b/256877824) to be removed once RunfilesPaths is imported.
+        // The current test cases are not referencing on these classes.
+        "javatests/com/google/android/libraries/mobiledatadownload/testing/RobolectricFileDownloader.java", // Missing RunfilesPaths
+        "javatests/com/google/android/libraries/mobiledatadownload/testing/MddNotificationCapture.java", // Missing GoogleLogger, AndroidTestUtil
+        "javatests/com/google/android/libraries/mobiledatadownload/testing/BlockingFileDownloader.java", // Missing GoogleLogger
+    ],
+
+    libs: [
+        "ub-uiautomator",
+        "androidx.test.ext.truth",
+        "androidx.test.rules",
+        "androidx.annotation_annotation",
+        "org.apache.http.legacy",
+        "mobile_data_downloader_lib",
+        "auto_value_annotations",
+        "framework-annotations-lib",
+        "checker-qual",
+    ],
+    visibility: [
+        ":__subpackages__",
     ],
 }
 
@@ -47,8 +80,8 @@ android_library {
         "java/**/*.java",
     ],
     exclude_srcs: [
-            "java/com/google/android/libraries/mobiledatadownload/downloader/offroad/dagger/**/*.java",
-            "java/com/google/android/libraries/mobiledatadownload/file/common/testing/**/*.java",
+        "java/com/google/android/libraries/mobiledatadownload/downloader/offroad/dagger/**/*.java",
+        "java/com/google/android/libraries/mobiledatadownload/file/common/testing/**/*.java",
     ],
     static_libs: [
         "androidx.core_core",
@@ -78,10 +111,12 @@ android_library {
     apex_available: [
         "//apex_available:platform",
          "com.android.adservices",
-	 "com.android.ondevicepersonalization",
+         "com.android.extservices",
+         "com.android.ondevicepersonalization",
     ],
     visibility: [
         "//packages/modules/AdServices:__subpackages__",
 	"//packages/modules/OnDevicePersonalization:__subpackages__",
+        ":__subpackages__",
     ],
 }

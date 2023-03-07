@@ -22,6 +22,9 @@ import com.google.android.libraries.mobiledatadownload.internal.logging.EventLog
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
+import com.google.mobiledatadownload.LogProto.MddStorageStats;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,9 +67,10 @@ public final class FakeEventLogger implements EventLogger {
   }
 
   @Override
-  public ListenableFuture<Void> logMddStorageStats(AsyncCallable<Void> buildMddStorageStats) {
+  public ListenableFuture<Void> logMddStorageStats(
+          AsyncCallable<MddStorageStats> buildMddStorageStats) {
     return immediateFailedFuture(
-        new UnsupportedOperationException("This method is not implemented in the fake yet."));
+            new UnsupportedOperationException("This method is not implemented in the fake yet."));
   }
 
   @Override
@@ -92,7 +96,8 @@ public final class FakeEventLogger implements EventLogger {
   }
 
   @Override
-  public void logMddDownloadResult(int code, Void fileGroupDetails) {
+  public void logMddDownloadResult(
+          MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails) {
     throw new UnsupportedOperationException("This method is not implemented in the fake yet.");
   }
 

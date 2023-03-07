@@ -82,6 +82,8 @@ import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import com.google.mobiledatadownload.internal.MetadataProto.GroupKeyProperties;
 import com.google.mobiledatadownload.internal.MetadataProto.NewFileKey;
 import com.google.mobiledatadownload.internal.MetadataProto.SharedFile;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.protobuf.Any;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -932,7 +934,16 @@ public class FileGroupManager {
                     // We log other results in verifyGroupDownloaded, so only check for
                     // downloaded here.
                     if (groupDownloadStatus == GroupDownloadStatus.DOWNLOADED) {
-                      eventLogger.logMddDownloadResult(0, null);
+                        eventLogger.logMddDownloadResult(
+                                MddDownloadResult.Code.SUCCESS,
+                                DataDownloadFileGroupStats.newBuilder()
+                                        .setFileGroupName(groupKey.getGroupName())
+                                        .setOwnerPackage(groupKey.getOwnerPackage())
+                                        .setFileGroupVersionNumber(
+                                                mergedFileGroup.getFileGroupVersionNumber())
+                                        .setBuildId(mergedFileGroup.getBuildId())
+                                        .setVariantId(mergedFileGroup.getVariantId())
+                                        .build());
                       // group downloaded, so it will be written in verifyGroupDownloaded, return
                       // early.
                       return immediateVoidFuture();
@@ -1379,7 +1390,15 @@ public class FileGroupManager {
           .build();
     }
 
-    eventLogger.logMddDownloadResult(0, null);
+      eventLogger.logMddDownloadResult(
+              MddDownloadResult.Code.SUCCESS,
+              DataDownloadFileGroupStats.newBuilder()
+                      .setFileGroupName(groupKey.getGroupName())
+                      .setOwnerPackage(groupKey.getOwnerPackage())
+                      .setFileGroupVersionNumber(pendingGroup.getFileGroupVersionNumber())
+                      .setBuildId(pendingGroup.getBuildId())
+                      .setVariantId(pendingGroup.getVariantId())
+                      .build());
     return immediateFuture(pendingGroup);
   }
 
@@ -2559,12 +2578,23 @@ public class FileGroupManager {
   /** Logs download failure remotely via {@code eventLogger}. */
   private ListenableFuture<Void> logDownloadFailure(
       GroupKey groupKey, DownloadException downloadException, long buildId, String variantId) {
-    Void groupDetails = null;
+      DataDownloadFileGroupStats.Builder groupDetails =
+              DataDownloadFileGroupStats.newBuilder()
+                      .setFileGroupName(groupKey.getGroupName())
+                      .setOwnerPackage(groupKey.getOwnerPackage())
+                      .setBuildId(buildId)
+                      .setVariantId(variantId);
 
     return transformSequentialAsync(
         fileGroupsMetadata.read(groupKey.toBuilder().setDownloaded(false).build()),
         dataFileGroup -> {
-          eventLogger.logMddDownloadResult(0, groupDetails);
+            if (dataFileGroup != null) {
+                groupDetails.setFileGroupVersionNumber(dataFileGroup.getFileGroupVersionNumber());
+            }
+
+            eventLogger.logMddDownloadResult(
+                    MddDownloadResult.Code.forNumber(downloadException.getDownloadResultCode().getCode()),
+                    groupDetails.build());
           return immediateVoidFuture();
         });
   }
