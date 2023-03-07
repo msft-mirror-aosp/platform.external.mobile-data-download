@@ -42,16 +42,22 @@ android_robolectric_test {
         "com/google/android/libraries/mobiledatadownload/internal/MobileDataDownloadManagerTest.java", // Missing LabsFutures
         "com/google/android/libraries/mobiledatadownload/internal/FileGroupManagerTest.java", // Missing LabsFutures
         "com/google/android/libraries/mobiledatadownload/internal/util/ProtoConversionUtilTest.java", // Missing ProtoParsers
+        "com/google/android/libraries/mobiledatadownload/internal/MddIsolatedStructuresTest.java", //android.os.symlink and android.os.readlink do not work with robolectric
     ],
 
     java_resource_dirs: ["config"],
 
     libs: [
-        "Robolectric_all-target",
+        // This jar should not be included, android_robolectric_test soong tasks either ads 
+        // "Robolectric_all-target" or "Robolectric_all-target_upstream" based on the "upstream"
+        // flag below.
         "androidx.test.core",
         "mobile_data_downloader_lib",
         "mdd-robolectric-library",
     ],
+
+    // use external/robolectric, rather than the outdated external/robolectric-shadows.
+    upstream: true,
 
     instrumentation_for: "MobileDataDownloadPlaceHolderApp",
 
