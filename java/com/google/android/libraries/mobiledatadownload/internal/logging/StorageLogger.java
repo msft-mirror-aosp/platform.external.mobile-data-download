@@ -16,10 +16,10 @@
 package com.google.android.libraries.mobiledatadownload.internal.logging;
 
 import static com.google.android.libraries.mobiledatadownload.internal.MddConstants.SPLIT_CHAR;
+import static com.google.common.util.concurrent.Futures.immediateFuture;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Pair;
 import com.google.android.libraries.mobiledatadownload.SilentFeedback;
 import com.google.android.libraries.mobiledatadownload.annotations.InstanceId;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
@@ -31,18 +31,14 @@ import com.google.android.libraries.mobiledatadownload.internal.SharedFileManage
 import com.google.android.libraries.mobiledatadownload.internal.SharedFileMissingException;
 import com.google.android.libraries.mobiledatadownload.internal.SharedFilesMetadata;
 import com.google.android.libraries.mobiledatadownload.internal.annotations.SequentialControlExecutor;
-import com.google.android.libraries.mobiledatadownload.file.openers.RecursiveSizeOpener;
+import com.google.android.libraries.mobiledatadownload.internal.collect.GroupKeyAndGroup;
 import com.google.android.libraries.mobiledatadownload.internal.util.DirectoryUtil;
 import com.google.android.libraries.mobiledatadownload.internal.util.FileGroupUtil;
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFluentFuture;
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures;
-import com.google.auto.value.AutoValue;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
-import com.google.common.util.concurrent.FluentFuture;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.mobiledatadownload.LogProto.MddStorageStats;
@@ -121,7 +117,7 @@ public class StorageLogger {
   private static GroupKey createGroupKey(DataFileGroupInternal fileGroup) {
     GroupKey.Builder groupKey = GroupKey.newBuilder().setGroupName(fileGroup.getGroupName());
 
-    if (Strings.isNullOrEmpty(fileGroup.getOwnerPackage())) {
+    if (fileGroup.getOwnerPackage().isEmpty()) {
       groupKey.setOwnerPackage(MddConstants.GMS_PACKAGE);
     } else {
       groupKey.setOwnerPackage(fileGroup.getOwnerPackage());
@@ -136,31 +132,29 @@ public class StorageLogger {
 
   private ListenableFuture<MddStorageStats> buildStorageStatsLogData(int daysSinceLastLog) {
     return PropagatedFluentFuture.from(fileGroupsMetadata.getAllFreshGroups())
-            .transformAsync(
-                    allGroups ->
-                            PropagatedFutures.transformAsync(
-                                    fileGroupsMetadata.getAllStaleGroups(),
-                                    staleGroups ->
-                                            buildStorageStatsInternal(allGroups, staleGroups, daysSinceLastLog),
-                                    sequentialControlExecutor),
-                    sequentialControlExecutor);
+        .transformAsync(
+            allGroups ->
+                PropagatedFutures.transformAsync(
+                    fileGroupsMetadata.getAllStaleGroups(),
+                    staleGroups ->
+                        buildStorageStatsInternal(allGroups, staleGroups, daysSinceLastLog),
+                    sequentialControlExecutor),
+            sequentialControlExecutor);
   }
 
   private ListenableFuture<MddStorageStats> buildStorageStatsInternal(
-      List<Pair<GroupKey, DataFileGroupInternal>> allKeysAndGroupPairs,
+      List<GroupKeyAndGroup> allKeysAndGroupPairs,
       List<DataFileGroupInternal> staleGroups,
       int daysSinceLastLog) {
 
-    List<GroupKeyAndDataFileGroupInternal> allKeysAndGroups = new ArrayList<>();
-    for (Pair<GroupKey, DataFileGroupInternal> groupKeyAndGroup : allKeysAndGroupPairs) {
-      allKeysAndGroups.add(
-          GroupKeyAndDataFileGroupInternal.create(groupKeyAndGroup.first, groupKeyAndGroup.second));
+    List<GroupKeyAndGroup> allKeysAndGroups = new ArrayList<>();
+    for (GroupKeyAndGroup groupKeyAndGroup : allKeysAndGroupPairs) {
+      allKeysAndGroups.add(groupKeyAndGroup);
     }
 
     // Adding staleGroups to allGroups.
     for (DataFileGroupInternal fileGroup : staleGroups) {
-      allKeysAndGroups.add(
-          GroupKeyAndDataFileGroupInternal.create(createGroupKey(fileGroup), fileGroup));
+      allKeysAndGroups.add(GroupKeyAndGroup.create(createGroupKey(fileGroup), fileGroup));
     }
 
     Map<String, GroupStorage> groupKeyToGroupStorage = new HashMap<>();
@@ -175,7 +169,7 @@ public class StorageLogger {
     AtomicLong totalMddBytesUsed = new AtomicLong(0L);
 
     List<ListenableFuture<Void>> futures = new ArrayList<>();
-    for (GroupKeyAndDataFileGroupInternal groupKeyAndGroup : allKeysAndGroups) {
+    for (GroupKeyAndGroup groupKeyAndGroup : allKeysAndGroups) {
 
       Set<NewFileKey> fileKeys =
           safeGetFileKeys(
@@ -194,20 +188,20 @@ public class StorageLogger {
                 getGroupWithOwnerPackageKey(groupKeyAndGroup.groupKey()));
         downloadedGroupKeyToDataFileGroup.put(
             getGroupWithOwnerPackageKey(groupKeyAndGroup.groupKey()),
-            groupKeyAndGroup.dataFileGroupInternal());
+            groupKeyAndGroup.dataFileGroup());
       }
 
       // Variables captured by lambdas must be effectively final.
       Set<NewFileKey> downloadedFileKeys = downloadedFileKeysInit;
-      int totalFileCount = groupKeyAndGroup.dataFileGroupInternal().getFileCount();
-      for (DataFile dataFile : groupKeyAndGroup.dataFileGroupInternal().getFileList()) {
+      int totalFileCount = groupKeyAndGroup.dataFileGroup().getFileCount();
+      for (DataFile dataFile : groupKeyAndGroup.dataFileGroup().getFileList()) {
         boolean isInlineFile = FileGroupUtil.isInlineFile(dataFile);
 
         NewFileKey fileKey =
             SharedFilesMetadata.createKeyFromDataFile(
-                dataFile, groupKeyAndGroup.dataFileGroupInternal().getAllowedReadersEnum());
+                dataFile, groupKeyAndGroup.dataFileGroup().getAllowedReadersEnum());
         futures.add(
-            Futures.transform(
+            PropagatedFutures.transform(
                 computeFileSize(fileKey),
                 fileSize -> {
                   if (!allFileKeys.contains(fileKey)) {
@@ -247,32 +241,32 @@ public class StorageLogger {
       groupStorage.totalFileCount = totalFileCount;
     }
 
-    return Futures.whenAllComplete(futures)
+    return PropagatedFutures.whenAllComplete(futures)
         .call(
             () -> {
               MddStorageStats.Builder storageStatsBuilder = MddStorageStats.newBuilder();
               for (String groupName : groupKeyToGroupStorage.keySet()) {
                 GroupStorage groupStorage = groupKeyToGroupStorage.get(groupName);
                 List<String> groupNameAndOwnerPackage =
-                        Splitter.on(SPLIT_CHAR).splitToList(groupName);
+                    Splitter.on(SPLIT_CHAR).splitToList(groupName);
 
                 DataDownloadFileGroupStats.Builder fileGroupDetailsBuilder =
-                        DataDownloadFileGroupStats.newBuilder()
-                                .setFileGroupName(groupNameAndOwnerPackage.get(0))
-                                .setOwnerPackage(groupNameAndOwnerPackage.get(1))
-                                .setFileCount(groupStorage.totalFileCount)
-                                .setInlineFileCount(groupStorage.totalInlineFileCount);
+                    DataDownloadFileGroupStats.newBuilder()
+                        .setFileGroupName(groupNameAndOwnerPackage.get(0))
+                        .setOwnerPackage(groupNameAndOwnerPackage.get(1))
+                        .setFileCount(groupStorage.totalFileCount)
+                        .setInlineFileCount(groupStorage.totalInlineFileCount);
 
                 DataFileGroupInternal dataFileGroup =
-                        downloadedGroupKeyToDataFileGroup.get(groupName);
+                    downloadedGroupKeyToDataFileGroup.get(groupName);
 
                 if (dataFileGroup == null) {
                   fileGroupDetailsBuilder.setFileGroupVersionNumber(-1);
                 } else {
                   fileGroupDetailsBuilder
-                          .setFileGroupVersionNumber(dataFileGroup.getFileGroupVersionNumber())
-                          .setBuildId(dataFileGroup.getBuildId())
-                          .setVariantId(dataFileGroup.getVariantId());
+                      .setFileGroupVersionNumber(dataFileGroup.getFileGroupVersionNumber())
+                      .setBuildId(dataFileGroup.getBuildId())
+                      .setVariantId(dataFileGroup.getVariantId());
                 }
 
                 storageStatsBuilder.addDataDownloadFileGroupStats(fileGroupDetailsBuilder.build());
@@ -280,9 +274,9 @@ public class StorageLogger {
                 storageStatsBuilder.addTotalBytesUsed(groupStorage.totalBytesUsed);
                 storageStatsBuilder.addTotalInlineBytesUsed(groupStorage.totalInlineBytesUsed);
                 storageStatsBuilder.addDownloadedGroupBytesUsed(
-                        groupStorage.downloadedGroupBytesUsed);
+                    groupStorage.downloadedGroupBytesUsed);
                 storageStatsBuilder.addDownloadedGroupInlineBytesUsed(
-                        groupStorage.downloadedGroupInlineBytesUsed);
+                    groupStorage.downloadedGroupInlineBytesUsed);
               }
 
               storageStatsBuilder.setTotalMddBytesUsed(totalMddBytesUsed.get());
@@ -296,14 +290,14 @@ public class StorageLogger {
               } catch (IOException e) {
                 mddDirectoryBytesUsed = 0;
                 LogUtil.e(
-                        e, "%s: Failed to call Mobstore to compute MDD Directory bytes used!", TAG);
+                    e, "%s: Failed to call Mobstore to compute MDD Directory bytes used!", TAG);
                 silentFeedback.send(
-                        e, "Failed to call Mobstore to compute MDD Directory bytes used!");
+                    e, "Failed to call Mobstore to compute MDD Directory bytes used!");
               }
 
               storageStatsBuilder
-                      .setTotalMddDirectoryBytesUsed(mddDirectoryBytesUsed)
-                      .setDaysSinceLastLog(daysSinceLastLog);
+                  .setTotalMddDirectoryBytesUsed(mddDirectoryBytesUsed)
+                  .setDaysSinceLastLog(daysSinceLastLog);
 
               return storageStatsBuilder.build();
             },
@@ -338,11 +332,9 @@ public class StorageLogger {
   }
 
   private ListenableFuture<Long> computeFileSize(NewFileKey newFileKey) {
-    return FluentFuture.from(sharedFileManager.getOnDeviceUri(newFileKey))
+    return PropagatedFluentFuture.from(sharedFileManager.getOnDeviceUri(newFileKey))
         .catchingAsync(
-            SharedFileMissingException.class,
-            e -> Futures.immediateFuture(null),
-            sequentialControlExecutor)
+            SharedFileMissingException.class, e -> immediateFuture(null), sequentialControlExecutor)
         .transform(
             fileUri -> {
               if (fileUri != null) {
@@ -355,18 +347,5 @@ public class StorageLogger {
               return 0L;
             },
             sequentialControlExecutor);
-  }
-
-  @AutoValue
-  abstract static class GroupKeyAndDataFileGroupInternal {
-    static GroupKeyAndDataFileGroupInternal create(
-        GroupKey groupKey, DataFileGroupInternal dataFileGroupInternal) {
-      return new AutoValue_StorageLogger_GroupKeyAndDataFileGroupInternal(
-          groupKey, dataFileGroupInternal);
-    }
-
-    abstract GroupKey groupKey();
-
-    abstract DataFileGroupInternal dataFileGroupInternal();
   }
 }

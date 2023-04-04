@@ -18,12 +18,11 @@ package com.google.android.libraries.mobiledatadownload.downloader.offroad.dagge
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
 import android.content.Context;
-import androidx.annotation.VisibleForTesting;
+
 import com.google.android.downloader.AndroidConnectivityHandler;
 import com.google.android.downloader.Downloader;
 import com.google.android.downloader.Downloader.StateChangeCallback;
 import com.google.android.downloader.FloggerDownloaderLogger;
-import com.google.android.downloader.PlatformAndroidTrafficStatsTagger;
 import com.google.android.downloader.PlatformUrlEngine;
 import com.google.android.downloader.UrlEngine;
 import com.google.android.libraries.mobiledatadownload.Flags;
@@ -41,14 +40,17 @@ import com.google.android.libraries.mobiledatadownload.monitor.DownloadProgressM
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.ListeningExecutorService;
+
+import java.util.concurrent.ScheduledExecutorService;
+
+import javax.annotation.Nullable;
+import javax.inject.Singleton;
+
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoMap;
 import dagger.multibindings.StringKey;
-import java.util.concurrent.ScheduledExecutorService;
-import javax.annotation.Nullable;
-import javax.inject.Singleton;
 
 /**
  * Dagger module for providing FileDownloader that uses Android Downloader2.
@@ -58,121 +60,136 @@ import javax.inject.Singleton;
  * module assumes is available to bind into.
  */
 @Module(
-    includes = {
-      BaseOffroadFileDownloaderModule.class,
-      BaseFileDownloaderDepsModule.class,
-    })
-@VisibleForTesting
+        includes = {
+                BaseOffroadFileDownloaderModule.class,
+                BaseFileDownloaderDepsModule.class,
+        })
 public abstract class BaseFileDownloaderModule {
-  @Provides
-  @Singleton
-  @IntoMap
-  @StringKey("https")
-  static Supplier<FileDownloader> provideFileDownloader(
-      Context context,
-      @MddDownloadExecutor ScheduledExecutorService downloadExecutor,
-      @MddControlExecutor ListeningExecutorService controlExecutor,
-      SynchronousFileStorage fileStorage,
-      DownloadMetadataStore downloadMetadataStore,
-      Optional<DownloadProgressMonitor> downloadProgressMonitor,
-      Optional<Lazy<UrlEngine>> urlEngineOptional,
-      Optional<Lazy<ExceptionHandler>> exceptionHandlerOptional,
-      Optional<Lazy<OAuthTokenProvider>> authTokenProviderOptional,
-      @SocketTrafficTag Optional<Integer> trafficTag,
-      Flags flags) {
-    return () ->
-        createOffroad2FileDownloader(
-            context,
-            downloadExecutor,
-            controlExecutor,
-            fileStorage,
-            downloadMetadataStore,
-            downloadProgressMonitor,
-            urlEngineOptional,
-            exceptionHandlerOptional,
-            authTokenProviderOptional,
-            trafficTag,
-            flags);
-  }
-
-  @VisibleForTesting
-  public static Offroad2FileDownloader createOffroad2FileDownloader(
-      Context context,
-      ScheduledExecutorService downloadExecutor,
-      ListeningExecutorService controlExecutor,
-      SynchronousFileStorage fileStorage,
-      DownloadMetadataStore downloadMetadataStore,
-      Optional<DownloadProgressMonitor> downloadProgressMonitor,
-      Optional<Lazy<UrlEngine>> urlEngineOptional,
-      Optional<Lazy<ExceptionHandler>> exceptionHandlerOptional,
-      Optional<Lazy<OAuthTokenProvider>> authTokenProviderOptional,
-      Optional<Integer> trafficTag,
-      Flags flags) {
-    @Nullable
-    com.google.android.downloader.OAuthTokenProvider authTokenProvider =
-        authTokenProviderOptional.isPresent()
-            ? convertToDownloaderAuthTokenProvider(authTokenProviderOptional.get().get())
-            : null;
-
-    ExceptionHandler handler =
-        exceptionHandlerOptional.transform(Lazy::get).or(ExceptionHandler.withDefaultHandling());
-
-    UrlEngine urlEngine;
-    if (urlEngineOptional.isPresent()) {
-      urlEngine = urlEngineOptional.get().get();
-    } else {
-      // Use {@link PlatformUrlEngine} if one was not provided.
-      urlEngine =
-          new PlatformUrlEngine(
-              controlExecutor,
-              /* connectTimeoutMs = */ flags.timeToWaitForDownloader(),
-              /* readTimeoutMs = */ flags.timeToWaitForDownloader(),
-              new PlatformAndroidTrafficStatsTagger());
+    @Provides
+    @Singleton
+    @IntoMap
+    @StringKey("https")
+    static Supplier<FileDownloader> provideFileDownloader(
+            Context context,
+            @MddDownloadExecutor ScheduledExecutorService downloadExecutor,
+            @MddControlExecutor ListeningExecutorService controlExecutor,
+            SynchronousFileStorage fileStorage,
+            DownloadMetadataStore downloadMetadataStore,
+            Optional<DownloadProgressMonitor> downloadProgressMonitor,
+            Optional<Lazy<UrlEngine>> urlEngineOptional,
+            Optional<Lazy<ExceptionHandler>> exceptionHandlerOptional,
+            Optional<Lazy<OAuthTokenProvider>> authTokenProviderOptional,
+//      Optional<Supplier<CookieJar>> cookieJarSupplierOptional,
+            @SocketTrafficTag Optional<Integer> trafficTag,
+            Flags flags) {
+        return () ->
+                createOffroad2FileDownloader(
+                        context,
+                        downloadExecutor,
+                        controlExecutor,
+                        fileStorage,
+                        downloadMetadataStore,
+                        downloadProgressMonitor,
+                        urlEngineOptional,
+                        exceptionHandlerOptional,
+                        authTokenProviderOptional,
+//            cookieJarSupplierOptional,
+                        trafficTag,
+                        flags);
     }
 
-    AndroidConnectivityHandler connectivityHandler =
-        new AndroidConnectivityHandler(
-            context, downloadExecutor, /* timeoutMillis = */ flags.timeToWaitForDownloader());
+    /**
+     * Manual provider of Offroad2FileDownloader.
+     *
+     * <p>NOTE: This method should only be used when manually wiring up dependencies, such as when
+     * dagger/hilt are not available. If using dagger/hilt, this method is not needed. By
+     * registering
+     * this module in the dagger graph, the above @Provides method will automatically provide this
+     * dependency.
+     */
+    public static Offroad2FileDownloader createOffroad2FileDownloader(
+            Context context,
+            ScheduledExecutorService downloadExecutor,
+            ListeningExecutorService controlExecutor,
+            SynchronousFileStorage fileStorage,
+            DownloadMetadataStore downloadMetadataStore,
+            Optional<DownloadProgressMonitor> downloadProgressMonitor,
+            Optional<Lazy<UrlEngine>> urlEngineOptional,
+            Optional<Lazy<ExceptionHandler>> exceptionHandlerOptional,
+            Optional<Lazy<OAuthTokenProvider>> authTokenProviderOptional,
+//      Optional<Supplier<CookieJar>> cookieJarSupplierOptional,
+            Optional<Integer> trafficTag,
+            Flags flags) {
+        @Nullable
+        com.google.android.downloader.OAuthTokenProvider authTokenProvider =
+                authTokenProviderOptional.isPresent()
+                        ? convertToDownloaderAuthTokenProvider(
+                        authTokenProviderOptional.get().get())
+                        : null;
 
-    FloggerDownloaderLogger logger = new FloggerDownloaderLogger();
+        ExceptionHandler handler =
+                exceptionHandlerOptional.transform(Lazy::get).or(
+                        ExceptionHandler.withDefaultHandling());
 
-    Downloader downloader =
-        new Downloader.Builder()
-            .withIOExecutor(controlExecutor)
-            .withConnectivityHandler(connectivityHandler)
-            .withMaxConcurrentDownloads(flags.downloaderMaxThreads())
-            .withLogger(logger)
-            .addUrlEngine("https", urlEngine)
-            .build();
+        UrlEngine urlEngine;
+        if (urlEngineOptional.isPresent()) {
+            urlEngine = urlEngineOptional.get().get();
+        } else {
+            // Use {@link PlatformUrlEngine} if one was not provided.
+            urlEngine =
+                    new PlatformUrlEngine(
+                            controlExecutor,
+                            /* connectTimeoutMs = */ flags.timeToWaitForDownloader(),
+                            /* readTimeoutMs = */ flags.timeToWaitForDownloader()
+                    );
+        }
 
-    if (downloadProgressMonitor.isPresent()) {
-      // Wire up downloader's state changes to DownloadProgressMonitor to handle connectivity
-      // pauses.
-      StateChangeCallback callback =
-          state -> {
-            if (state.getNumDownloadsPendingConnectivity() > 0
-                && state.getNumDownloadsInFlight() == 0) {
-              // Handle network connectivity pauses
-              downloadProgressMonitor.get().pausedForConnectivity();
-            }
-          };
-      downloader.registerStateChangeCallback(callback, controlExecutor);
+        AndroidConnectivityHandler connectivityHandler =
+                new AndroidConnectivityHandler(
+                        context, downloadExecutor, /* timeoutMillis= */
+                        flags.timeToWaitForDownloader());
+
+        FloggerDownloaderLogger logger = new FloggerDownloaderLogger();
+
+        Downloader downloader =
+                new Downloader.Builder()
+                        .withIOExecutor(controlExecutor)
+                        .withConnectivityHandler(connectivityHandler)
+                        .withMaxConcurrentDownloads(flags.downloaderMaxThreads())
+                        .withLogger(logger)
+                        .addUrlEngine("https", urlEngine)
+                        .build();
+
+        if (downloadProgressMonitor.isPresent()) {
+            // Wire up downloader's state changes to DownloadProgressMonitor to handle connectivity
+            // pauses.
+            StateChangeCallback callback =
+                    state -> {
+                        if (state.getNumDownloadsPendingConnectivity() > 0
+                                && state.getNumDownloadsInFlight() == 0) {
+                            // Handle network connectivity pauses
+                            downloadProgressMonitor.get().pausedForConnectivity();
+                        }
+                    };
+            downloader.registerStateChangeCallback(callback, controlExecutor);
+        }
+
+        return new Offroad2FileDownloader(
+                downloader,
+                fileStorage,
+                downloadExecutor,
+                authTokenProvider,
+                downloadMetadataStore,
+                handler,
+//        cookieJarSupplierOptional,
+                trafficTag);
     }
 
-    return new Offroad2FileDownloader(
-        downloader,
-        fileStorage,
-        downloadExecutor,
-        authTokenProvider,
-        downloadMetadataStore,
-        handler,
-        trafficTag);
-  }
+    private static com.google.android.downloader.OAuthTokenProvider
+    convertToDownloaderAuthTokenProvider(OAuthTokenProvider authTokenProvider) {
+        return uri -> immediateFuture(authTokenProvider.provideOAuthToken(uri.toString()));
+    }
 
-  private static com.google.android.downloader.OAuthTokenProvider
-      convertToDownloaderAuthTokenProvider(OAuthTokenProvider authTokenProvider) {
-    return uri -> immediateFuture(authTokenProvider.provideOAuthToken(uri.toString()));
-  }
-
-  private BaseFileDownloaderModule() {}
+    private BaseFileDownloaderModule() {
+    }
 }
