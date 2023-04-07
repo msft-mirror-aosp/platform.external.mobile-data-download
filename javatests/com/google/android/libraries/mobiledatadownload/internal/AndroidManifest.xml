@@ -20,6 +20,7 @@
   <!-- Set minSdkVersion to 21 because android.os.symlink is only available after api level 21. -->
   <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="29"/>
   <application>
+        <uses-library android:name="android.test.runner" />
 
   </application>
     <instrumentation
