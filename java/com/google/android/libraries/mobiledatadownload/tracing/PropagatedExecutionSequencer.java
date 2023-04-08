@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,24 +25,24 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /** Wrapper around {@link ExecutionSequencer} with trace propagation. */
 public final class PropagatedExecutionSequencer {
 
-    private final ExecutionSequencer executionSequencer = ExecutionSequencer.create();
+  private final ExecutionSequencer executionSequencer = ExecutionSequencer.create();
 
-    private PropagatedExecutionSequencer() {}
+  private PropagatedExecutionSequencer() {}
 
-    /** Creates a new instance. */
-    public static PropagatedExecutionSequencer create() {
-        return new PropagatedExecutionSequencer();
-    }
+  /** Creates a new instance. */
+  public static PropagatedExecutionSequencer create() {
+    return new PropagatedExecutionSequencer();
+  }
 
-    /** See {@link ExecutionSequencer#submit(Callable, Executor)}. */
-    public <T extends @Nullable Object> ListenableFuture<T> submit(
-            Callable<T> callable, Executor executor) {
-        return executionSequencer.submit(callable, executor);
-    }
+  /** See {@link ExecutionSequencer#submit(Callable, Executor)}. */
+  public <T extends @Nullable Object> ListenableFuture<T> submit(
+      Callable<T> callable, Executor executor) {
+    return executionSequencer.submit(callable, executor);
+  }
 
-    /** See {@link ExecutionSequencer#submitAsync(AsyncCallable, Executor)}. */
-    public <T extends @Nullable Object> ListenableFuture<T> submitAsync(
-            AsyncCallable<T> callable, Executor executor) {
-        return executionSequencer.submitAsync(callable, executor);
-    }
+  /** See {@link ExecutionSequencer#submitAsync(AsyncCallable, Executor)}. */
+  public <T extends @Nullable Object> ListenableFuture<T> submitAsync(
+      AsyncCallable<T> callable, Executor executor) {
+    return executionSequencer.submitAsync(callable, executor);
+  }
 }
