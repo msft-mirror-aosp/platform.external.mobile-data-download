@@ -20,9 +20,9 @@ import android.util.Base64;
 import com.google.android.libraries.mobiledatadownload.internal.logging.LogUtil;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
 import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
-import com.google.protobuf.InvalidProtocolBufferException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -102,7 +102,8 @@ public final class FileGroupsMetadataUtil {
   /**
    * Converts a string representing a serialized GroupKey into a GroupKey.
    *
-   * @return - groupKey if able to parse stringKey properly. null if parsing fails.
+   * @return groupKey if able to parse string key properly.
+   * @throws GroupKeyDeserializationException when unable to parse string key
    */
   // TODO(b/129702287): Move away from proto based deserialization.
   public static GroupKey deserializeGroupKey(String serializedGroupKey)
@@ -110,7 +111,7 @@ public final class FileGroupsMetadataUtil {
     try {
       return SharedPreferencesUtil.parseLiteFromEncodedString(
           serializedGroupKey, GroupKey.parser());
-    } catch (InvalidProtocolBufferException e) {
+    } catch (NullPointerException | InvalidProtocolBufferException e) {
       throw new GroupKeyDeserializationException(
           "Failed to deserialize key:" + serializedGroupKey, e);
     }
