@@ -24,7 +24,6 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.mobiledatadownload.LogProto.StableSamplingInfo;
-import com.google.protobuf.Timestamp;
 
 import java.util.Random;
 
@@ -32,121 +31,123 @@ import java.util.Random;
 @CheckReturnValue
 public final class LogSampler {
 
-  private final Flags flags;
-  private final Random random;
+    private final Flags flags;
+    private final Random random;
 
-  /**
-   * Construct the log sampler.
-   *
-   * @param flags used to check whether stable sampling is enabled.
-   * @param random used to generate random numbers for event based sampling only.
-   */
-  public LogSampler(Flags flags, Random random) {
-    this.flags = flags;
-    this.random = random;
-  }
-
-  /**
-   * Determines whether the event should be logged. If the event should be logged it returns an
-   * instance of Void that should be attached to the log events.
-   *
-   * <p>If stable sampling is enabled, this is deterministic. If stable sampling is disabled, the
-   * result can change on each call based on the provided Random instance.
-   *
-   * @param sampleInterval the inverse sampling rate to use. This is controlled by flags per
-   *     event-type. For stable sampling it's expected that 100 % sampleInterval == 0.
-   * @param loggingStateStore used to read persisted random number when stable sampling is enabled.
-   *     If it is absent, stable sampling will not be used.
-   * @return a future of an optional of StableSamplingInfo. The future will resolve to an absent
-   *     Optional if the event should not be logged. If the event should be logged, the returned
-   *     Void should be attached to the log event.
-   */
-  public ListenableFuture<Optional<StableSamplingInfo>> shouldLog(
-          long sampleInterval, Optional<LoggingStateStore> loggingStateStore) {
-    if (sampleInterval == 0L) {
-      return immediateFuture(Optional.absent());
-    } else if (sampleInterval < 0L) {
-      LogUtil.e("Bad sample interval (negative number): %d", sampleInterval);
-      return immediateFuture(Optional.absent());
-    } else if (flags.enableRngBasedDeviceStableSampling() && loggingStateStore.isPresent()) {
-      return shouldLogDeviceStable(sampleInterval, loggingStateStore.get());
-    } else {
-      return shouldLogPerEvent(sampleInterval);
+    /**
+     * Construct the log sampler.
+     *
+     * @param flags  used to check whether stable sampling is enabled.
+     * @param random used to generate random numbers for event based sampling only.
+     */
+    public LogSampler(Flags flags, Random random) {
+        this.flags = flags;
+        this.random = random;
     }
-  }
 
-  /**
-   * Returns standard random event based sampling.
-   *
-   * @return if the event should be sampled, returns the Void with stable_sampling_used = false.
-   *     Otherwise, returns an empty Optional.
-   */
-  private ListenableFuture<Optional<StableSamplingInfo>> shouldLogPerEvent(long sampleInterval) {
-    if (shouldSamplePerEvent(sampleInterval)) {
-      return immediateFuture(
-              Optional.of(StableSamplingInfo.newBuilder().setStableSamplingUsed(false).build()));
-    } else {
-      return immediateFuture(Optional.absent());
+    /**
+     * Determines whether the event should be logged. If the event should be logged it returns an
+     * instance of StableSamplingInfo that should be attached to the log events.
+     *
+     * <p>If stable sampling is enabled, this is deterministic. If stable sampling is disabled, the
+     * result can change on each call based on the provided Random instance.
+     *
+     * @param sampleInterval    the inverse sampling rate to use. This is controlled by flags per
+     *                          event-type. For stable sampling it's expected that 100 %
+     *                          sampleInterval == 0.
+     * @param loggingStateStore used to read persisted random number when stable sampling is
+     *                          enabled.
+     *                          If it is absent, stable sampling will not be used.
+     * @return a future of an optional of StableSamplingInfo. The future will resolve to an absent
+     * Optional if the event should not be logged. If the event should be logged, the returned
+     * StableSamplingInfo should be attached to the log event.
+     */
+    public ListenableFuture<Optional<StableSamplingInfo>> shouldLog(
+            long sampleInterval, Optional<LoggingStateStore> loggingStateStore) {
+        if (sampleInterval == 0L) {
+            return immediateFuture(Optional.absent());
+        } else if (sampleInterval < 0L) {
+            LogUtil.e("Bad sample interval (negative number): %d", sampleInterval);
+            return immediateFuture(Optional.absent());
+        } else if (flags.enableRngBasedDeviceStableSampling() && loggingStateStore.isPresent()) {
+            return shouldLogDeviceStable(sampleInterval, loggingStateStore.get());
+        } else {
+            return shouldLogPerEvent(sampleInterval);
+        }
     }
-  }
 
-  private boolean shouldSamplePerEvent(long sampleInterval) {
-    if (sampleInterval == 0L) {
-      return false;
-    } else if (sampleInterval < 0L) {
-      LogUtil.e("Bad sample interval (negative number): %d", sampleInterval);
-      return false;
-    } else {
-      return isPartOfSample(random.nextLong(), sampleInterval);
+    /**
+     * Returns standard random event based sampling.
+     *
+     * @return if the event should be sampled, returns the StableSamplingInfo with
+     * stable_sampling_used = false. Otherwise, returns an empty Optional.
+     */
+    private ListenableFuture<Optional<StableSamplingInfo>> shouldLogPerEvent(long sampleInterval) {
+        if (shouldSamplePerEvent(sampleInterval)) {
+            return immediateFuture(
+                    Optional.of(
+                            StableSamplingInfo.newBuilder().setStableSamplingUsed(false).build()));
+        } else {
+            return immediateFuture(Optional.absent());
+        }
     }
-  }
 
-  /**
-   * Returns device stable sampling.
-   *
-   * @return if the event should be sampled, returns the Void with stable_sampling_used = true and
-   *     all other fields populated. Otherwise, returns an empty Optional.
-   */
-  private ListenableFuture<Optional<StableSamplingInfo>> shouldLogDeviceStable(
-          long sampleInterval, LoggingStateStore loggingStateStore) {
-    return PropagatedFluentFuture.from(loggingStateStore.getStableSamplingInfo())
-            .transform(
-                    samplingInfo -> {
-                      boolean invalidSamplingRateUsed = ((100 % sampleInterval) != 0);
-                      if (invalidSamplingRateUsed) {
-                        LogUtil.e(
-                                "Bad sample interval (1 percent cohort will not log): %d", sampleInterval);
-                      }
+    private boolean shouldSamplePerEvent(long sampleInterval) {
+        if (sampleInterval == 0L) {
+            return false;
+        } else if (sampleInterval < 0L) {
+            LogUtil.e("Bad sample interval (negative number): %d", sampleInterval);
+            return false;
+        } else {
+            return isPartOfSample(random.nextLong(), sampleInterval);
+        }
+    }
 
-                      if (!isPartOfSample(samplingInfo.getStableLogSamplingSalt(), sampleInterval)) {
-                        return Optional.absent();
-                      }
+    /**
+     * Returns device stable sampling.
+     *
+     * @return if the event should be sampled, returns the StableSamplingInfo with
+     * stable_sampling_used = true and all other fields populated. Otherwise, returns an empty
+     * Optional.
+     */
+    private ListenableFuture<Optional<StableSamplingInfo>> shouldLogDeviceStable(
+            long sampleInterval, LoggingStateStore loggingStateStore) {
+        return PropagatedFluentFuture.from(loggingStateStore.getStableSamplingInfo())
+                .transform(
+                        samplingInfo -> {
+                            boolean invalidSamplingRateUsed = ((100 % sampleInterval) != 0);
+                            if (invalidSamplingRateUsed) {
+                                LogUtil.e(
+                                        "Bad sample interval (1 percent cohort will not log): %d",
+                                        sampleInterval);
+                            }
 
-                      return Optional.of(
-                              StableSamplingInfo.newBuilder()
-                                      .setStableSamplingUsed(true)
-                                      .setStableSamplingFirstEnabledTimestampMs(
-                                              toMillis(samplingInfo.getLogSamplingSaltSetTimestamp()))
-                                      .setPartOfAlwaysLoggingGroup(
-                                              isPartOfSample(
-                                                      samplingInfo.getStableLogSamplingSalt(), /*sampleInterval=*/ 100))
-                                      .setInvalidSamplingRateUsed(invalidSamplingRateUsed)
-                                      .build());
-                    },
-                    directExecutor());
-  }
+                            if (!isPartOfSample(samplingInfo.getStableLogSamplingSalt(),
+                                    sampleInterval)) {
+                                return Optional.absent();
+                            }
 
-  /**
-   * Returns whether this device is part of the sample with the given sampling rate and random
-   * number.
-   */
-  private boolean isPartOfSample(long randomNumber, long sampleInterval) {
-    return randomNumber % sampleInterval == 0;
-  }
+                            return Optional.of(
+                                    StableSamplingInfo.newBuilder()
+                                            .setStableSamplingUsed(true)
+                                            .setStableSamplingFirstEnabledTimestampMs(
+                                                    TimestampsUtil.toMillis(
+                                                            samplingInfo.getLogSamplingSaltSetTimestamp()))
+                                            .setPartOfAlwaysLoggingGroup(
+                                                    isPartOfSample(
+                                                            samplingInfo.getStableLogSamplingSalt(), /* sampleInterval= */
+                                                            100))
+                                            .setInvalidSamplingRateUsed(invalidSamplingRateUsed)
+                                            .build());
+                        },
+                        directExecutor());
+    }
 
-  // Copy from com.google.protobuf.util.Timestamps
-  // TODO(b/243397277) Remove toMillis.
-  private static long toMillis(Timestamp timestamp) {
-    return timestamp.getSeconds() * 1000L + (long)timestamp.getNanos() / 1000000L;
-  }
+    /**
+     * Returns whether this device is part of the sample with the given sampling rate and random
+     * number.
+     */
+    private boolean isPartOfSample(long randomNumber, long sampleInterval) {
+        return randomNumber % sampleInterval == 0;
+    }
 }
