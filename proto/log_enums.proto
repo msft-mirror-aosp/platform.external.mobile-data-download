@@ -1,3 +1,16 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 syntax = "proto3";
 
 package mobiledatadownload.logs;
@@ -67,7 +80,7 @@ message MddDownloadResult {
     UNKNOWN_ERROR = 2;
 
     // The errors from the android downloader v1 outside MDD, which comes from:
-    // http://google3/java/com/google/android/libraries/net/downloader/DownloadFailure.java?l=12&rcl=114548720
+    // <internal>
     // The block 100-199 (included) is reserved for android downloader v1.
     // Next tag: 112
     ANDROID_DOWNLOADER_UNKNOWN = 100;
@@ -84,7 +97,7 @@ message MddDownloadResult {
     ANDROID_DOWNLOADER_OAUTH_ERROR = 111;
 
     // The errors from the android downloader v2 outside MDD, which comes from:
-    // http://google3/java/com/google/android/libraries/net/downloader2/DownloadException.java
+    // <internal>
     // The block 200-299 (included) is reserved for android downloader v2.
     // Next tag: 201
     ANDROID_DOWNLOADER2_ERROR = 200;
