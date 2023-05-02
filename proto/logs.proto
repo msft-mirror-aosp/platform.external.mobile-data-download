@@ -1,3 +1,16 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 // Logging protos for MobileDataDownload
 
 syntax = "proto2";
@@ -6,7 +19,7 @@ package mobiledatadownload.logs;
 
 import "log_enums.proto";
 
-// option jspb_use_correct_proto2_semantics = false;  // <internal>
+//option jspb_use_correct_proto2_semantics = false;  // <internal>
 option java_package = "com.google.mobiledatadownload";
 option java_outer_classname = "LogProto";
 
@@ -87,7 +100,7 @@ message DataDownloadFileGroupStats {
 
   // Whether the file group has an account associated with it or not. This will
   // allow us to slice metrics by having account or not. For more info see
-  // cs/symbol:mdi.download.internal.GroupKey.account
+  // <internal>
   optional bool has_account = 5;
 
   // The build id for the file group. Unique identifier for a file group config
@@ -253,6 +266,6 @@ message MddStorageStats {
   //
   // Set to -1 if there is an invalid or unknown value.
   //
-  // See go/mdd-logging-enhancements for more info.
+  // See <internal> for more info.
   optional int32 days_since_last_log = 6;
 }
