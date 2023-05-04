@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.google.android.libraries.mobiledatadownload.internal.logging;
 
 import static com.google.android.libraries.mobiledatadownload.internal.MddConstants.SPLIT_CHAR;
+
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+
 import androidx.annotation.VisibleForTesting;
+
 import com.google.android.libraries.mobiledatadownload.TimeSource;
 import com.google.android.libraries.mobiledatadownload.internal.util.FileGroupsMetadataUtil;
 import com.google.android.libraries.mobiledatadownload.internal.util.FileGroupsMetadataUtil.GroupKeyDeserializationException;
@@ -37,6 +39,7 @@ import com.google.mobiledatadownload.internal.MetadataProto.FileGroupLoggingStat
 import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import com.google.mobiledatadownload.internal.MetadataProto.SamplingInfo;
 import com.google.protobuf.Timestamp;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -55,8 +58,10 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
 
     private static final String LAST_MAINTENANCE_RUN_SECS_KEY = "last_maintenance_secs";
 
-    @VisibleForTesting static final String SALT_KEY = "stable_log_sampling_salt";
-    private static final String SALT_TIMESTAMP_MILLIS_KEY = "log_sampling_salt_set_timestamp_millis";
+    @VisibleForTesting
+    static final String SALT_KEY = "stable_log_sampling_salt";
+    private static final String SALT_TIMESTAMP_MILLIS_KEY =
+            "log_sampling_salt_set_timestamp_millis";
 
     private final Supplier<SharedPreferences> sharedPrefs;
     private final Executor backgroundExecutor;
@@ -71,15 +76,17 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
      * Constructs a new instance.
      *
      * @param sharedPrefs may be called multiple times, so memoization is recommended. The returned
-     *     instance must be exclusive to {@link SharedPreferencesLoggingState} since {@link #clear}
-     *     may clear the data at any time.
+     *                    instance must be exclusive to {@link SharedPreferencesLoggingState} since
+     *                    {@link #clear}
+     *                    may clear the data at any time.
      */
     public static SharedPreferencesLoggingState create(
             Supplier<SharedPreferences> sharedPrefs,
             TimeSource timeSource,
             Executor backgroundExecutor,
             Random random) {
-        return new SharedPreferencesLoggingState(sharedPrefs, timeSource, backgroundExecutor, random);
+        return new SharedPreferencesLoggingState(sharedPrefs, timeSource, backgroundExecutor,
+                random);
     }
 
     /** Constructs a new instance. */
@@ -95,7 +102,8 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
                         () ->
                                 SharedPreferencesUtil.getSharedPreferences(
                                         context, SHARED_PREFS_NAME, instanceIdOptional));
-        return new SharedPreferencesLoggingState(sharedPrefs, timeSource, backgroundExecutor, random);
+        return new SharedPreferencesLoggingState(sharedPrefs, timeSource, backgroundExecutor,
+                random);
     }
 
     private SharedPreferencesLoggingState(
@@ -180,15 +188,18 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
                     boolean hasEverDoneMaintenance =
                             sharedPrefs.get().contains(LAST_MAINTENANCE_RUN_SECS_KEY);
                     if (hasEverDoneMaintenance) {
-                        long persistedTimestamp = sharedPrefs.get().getLong(LAST_MAINTENANCE_RUN_SECS_KEY, 0);
+                        long persistedTimestamp = sharedPrefs.get().getLong(
+                                LAST_MAINTENANCE_RUN_SECS_KEY, 0);
                         long currentStartOfDay = truncateTimestampToStartOfDay(currentTimestamp);
                         long previousStartOfDay = truncateTimestampToStartOfDay(persistedTimestamp);
-                        // Note: ignore MillisTo_Days java optional suggestion because Duration is api
+                        // Note: ignore MillisTo_Days java optional suggestion because Duration
+                        // is api
                         // 26+.
                         daysSinceLastMaintenance =
                                 Optional.of(
                                         Ints.saturatedCast(
-                                                MILLISECONDS.toDays(currentStartOfDay - previousStartOfDay)));
+                                                MILLISECONDS.toDays(
+                                                        currentStartOfDay - previousStartOfDay)));
                     } else {
                         daysSinceLastMaintenance = Optional.absent();
                     }
@@ -209,10 +220,12 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
                     Entry entry = Entry.fromLoggingState(dataUsageIncrements);
 
                     long currentCellarUsage =
-                            sharedPrefs.get().getLong(entry.getSharedPrefsKey(Key.CELLULAR_USAGE), 0);
+                            sharedPrefs.get().getLong(entry.getSharedPrefsKey(Key.CELLULAR_USAGE),
+                                    0);
                     long currentWifiUsage =
                             sharedPrefs.get().getLong(entry.getSharedPrefsKey(Key.WIFI_USAGE), 0);
-                    long updatedCellarUsage = currentCellarUsage + dataUsageIncrements.getCellularUsage();
+                    long updatedCellarUsage =
+                            currentCellarUsage + dataUsageIncrements.getCellularUsage();
                     long updatedWifiUsage = currentWifiUsage + dataUsageIncrements.getWifiUsage();
 
                     SharedPreferences.Editor editor = sharedPrefs.get().edit();
@@ -250,9 +263,12 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
                                         .setBuildId(entry.buildId)
                                         .setFileGroupVersionNumber(entry.fileGroupVersionNumber)
                                         .setCellularUsage(
-                                                sharedPrefs.get().getLong(entry.getSharedPrefsKey(Key.CELLULAR_USAGE), 0))
+                                                sharedPrefs.get().getLong(
+                                                        entry.getSharedPrefsKey(Key.CELLULAR_USAGE),
+                                                        0))
                                         .setWifiUsage(
-                                                sharedPrefs.get().getLong(entry.getSharedPrefsKey(Key.WIFI_USAGE), 0))
+                                                sharedPrefs.get().getLong(
+                                                        entry.getSharedPrefsKey(Key.WIFI_USAGE), 0))
                                         .build();
                         allLoggingStates.add(loggingState);
 
@@ -287,7 +303,8 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
                     boolean hasCreatedSalt = sharedPrefs.get().contains(SALT_KEY);
                     if (hasCreatedSalt) {
                         salt = sharedPrefs.get().getLong(SALT_KEY, 0);
-                        persistedTimestampMillis = sharedPrefs.get().getLong(SALT_TIMESTAMP_MILLIS_KEY, 0);
+                        persistedTimestampMillis = sharedPrefs.get().getLong(
+                                SALT_TIMESTAMP_MILLIS_KEY, 0);
                     } else {
                         salt = random.nextLong();
                         persistedTimestampMillis = timeSource.currentTimeMillis();
@@ -298,7 +315,7 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
                         commitOrThrow(editor);
                     }
 
-                    Timestamp timestamp = fromMillis(persistedTimestampMillis);
+                    Timestamp timestamp = TimestampsUtil.fromMillis(persistedTimestampMillis);
                     return SamplingInfo.newBuilder()
                             .setStableLogSamplingSalt(salt)
                             .setLogSamplingSaltSetTimestamp(timestamp)
@@ -329,39 +346,5 @@ public final class SharedPreferencesLoggingState implements LoggingStateStore {
             throw new IOException("Failed to commit");
         }
         return null;
-    }
-
-    // TODO(b/243397277) Remove following methods.
-    public static Timestamp fromMillis(long milliseconds) {
-        return normalizedTimestamp(milliseconds / 1000L, (int)(milliseconds % 1000L * 1000000L));
-    }
-
-    private static Timestamp normalizedTimestamp(long seconds, int nanos) {
-        if ((long)nanos <= -1000000000L || (long)nanos >= 1000000000L) {
-            seconds += (long)nanos / 1000000000L;
-            nanos = (int)((long)nanos % 1000000000L);
-        }
-
-        if (nanos < 0) {
-            nanos = (int)((long)nanos + 1000000000L);
-            --seconds;
-        }
-
-        checkValid(seconds, nanos);
-        return Timestamp.newBuilder().setSeconds(seconds).setNanos(nanos).build();
-    }
-
-    private static void checkValid(long seconds, int nanos) {
-        if (!isValid(seconds, (long)nanos)) {
-            throw new IllegalArgumentException(String.format("Timestamp is not valid. See proto definition for valid values. Seconds (%s) must be in range [-62,135,596,800, +253,402,300,799].Nanos (%s) must be in range [0, +999,999,999].", seconds, nanos));
-        }
-    }
-
-    private static boolean isValid(long seconds, long nanos) {
-        if (seconds >= -62135596800L && seconds <= 253402300799L) {
-            return nanos >= 0L && nanos < 1000000000L;
-        } else {
-            return false;
-        }
     }
 }
