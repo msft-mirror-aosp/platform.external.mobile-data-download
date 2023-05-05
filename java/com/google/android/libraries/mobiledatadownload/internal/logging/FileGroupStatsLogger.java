@@ -17,20 +17,20 @@ package com.google.android.libraries.mobiledatadownload.internal.logging;
 
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
-import android.util.Pair;
 import com.google.android.libraries.mobiledatadownload.internal.FileGroupManager;
 import com.google.android.libraries.mobiledatadownload.internal.FileGroupManager.GroupDownloadStatus;
 import com.google.android.libraries.mobiledatadownload.internal.FileGroupsMetadata;
 import com.google.android.libraries.mobiledatadownload.internal.annotations.SequentialControlExecutor;
+import com.google.android.libraries.mobiledatadownload.internal.collect.GroupKeyAndGroup;
 import com.google.android.libraries.mobiledatadownload.internal.util.FileGroupUtil;
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
-import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import com.google.mobiledatadownload.LogEnumsProto.MddFileGroupDownloadStatus;
 import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.mobiledatadownload.LogProto.MddFileGroupStatus;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
+import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -50,10 +50,10 @@ public class FileGroupStatsLogger {
 
   @Inject
   public FileGroupStatsLogger(
-          FileGroupManager fileGroupManager,
-          FileGroupsMetadata fileGroupsMetadata,
-          EventLogger eventLogger,
-          @SequentialControlExecutor Executor sequentialControlExecutor) {
+      FileGroupManager fileGroupManager,
+      FileGroupsMetadata fileGroupsMetadata,
+      EventLogger eventLogger,
+      @SequentialControlExecutor Executor sequentialControlExecutor) {
     this.fileGroupManager = fileGroupManager;
     this.fileGroupsMetadata = fileGroupsMetadata;
     this.eventLogger = eventLogger;
@@ -66,51 +66,51 @@ public class FileGroupStatsLogger {
   }
 
   private ListenableFuture<List<EventLogger.FileGroupStatusWithDetails>> buildFileGroupStatusList(
-          int daysSinceLastLog) {
+      int daysSinceLastLog) {
     return PropagatedFutures.transformAsync(
-            fileGroupsMetadata.getAllFreshGroups(),
-            downloadedAndPendingGroups -> {
-              List<ListenableFuture<EventLogger.FileGroupStatusWithDetails>> futures =
-                      new ArrayList<>();
-              for (Pair<GroupKey, DataFileGroupInternal> pair : downloadedAndPendingGroups) {
-                GroupKey groupKey = pair.first;
-                DataFileGroupInternal dataFileGroup = pair.second;
-                if (dataFileGroup == null) {
-                  continue;
-                }
+        fileGroupsMetadata.getAllFreshGroups(),
+        downloadedAndPendingGroups -> {
+          List<ListenableFuture<EventLogger.FileGroupStatusWithDetails>> futures =
+              new ArrayList<>();
+          for (GroupKeyAndGroup pair : downloadedAndPendingGroups) {
+            GroupKey groupKey = pair.groupKey();
+            DataFileGroupInternal dataFileGroup = pair.dataFileGroup();
+            if (dataFileGroup == null) {
+              continue;
+            }
 
-                DataDownloadFileGroupStats fileGroupDetails =
-                        DataDownloadFileGroupStats.newBuilder()
-                                .setFileGroupName(groupKey.getGroupName())
-                                .setOwnerPackage(groupKey.getOwnerPackage())
-                                .setFileGroupVersionNumber(dataFileGroup.getFileGroupVersionNumber())
-                                .setFileCount(dataFileGroup.getFileCount())
-                                .setInlineFileCount(FileGroupUtil.getInlineFileCount(dataFileGroup))
-                                .setHasAccount(!groupKey.getAccount().isEmpty())
-                                .setBuildId(dataFileGroup.getBuildId())
-                                .setVariantId(dataFileGroup.getVariantId())
-                                .build();
+            DataDownloadFileGroupStats fileGroupDetails =
+                DataDownloadFileGroupStats.newBuilder()
+                    .setFileGroupName(groupKey.getGroupName())
+                    .setOwnerPackage(groupKey.getOwnerPackage())
+                    .setFileGroupVersionNumber(dataFileGroup.getFileGroupVersionNumber())
+                    .setFileCount(dataFileGroup.getFileCount())
+                    .setInlineFileCount(FileGroupUtil.getInlineFileCount(dataFileGroup))
+                    .setHasAccount(!groupKey.getAccount().isEmpty())
+                    .setBuildId(dataFileGroup.getBuildId())
+                    .setVariantId(dataFileGroup.getVariantId())
+                    .build();
 
-                futures.add(
-                        PropagatedFutures.transform(
-                                buildFileGroupStatus(dataFileGroup, groupKey, daysSinceLastLog),
-                                fileGroupStatus ->
-                                        EventLogger.FileGroupStatusWithDetails.create(
-                                                fileGroupStatus, fileGroupDetails),
-                                sequentialControlExecutor));
-              }
-              return Futures.allAsList(futures);
-            },
-            sequentialControlExecutor);
+            futures.add(
+                PropagatedFutures.transform(
+                    buildFileGroupStatus(dataFileGroup, groupKey, daysSinceLastLog),
+                    fileGroupStatus ->
+                        EventLogger.FileGroupStatusWithDetails.create(
+                            fileGroupStatus, fileGroupDetails),
+                    sequentialControlExecutor));
+          }
+          return Futures.allAsList(futures);
+        },
+        sequentialControlExecutor);
   }
 
   private ListenableFuture<MddFileGroupStatus> buildFileGroupStatus(
-          DataFileGroupInternal dataFileGroup, GroupKey groupKey, int daysSinceLastLog) {
+      DataFileGroupInternal dataFileGroup, GroupKey groupKey, int daysSinceLastLog) {
     MddFileGroupStatus.Builder fileGroupStatus =
-            MddFileGroupStatus.newBuilder().setDaysSinceLastLog(daysSinceLastLog);
+        MddFileGroupStatus.newBuilder().setDaysSinceLastLog(daysSinceLastLog);
     if (dataFileGroup.getBookkeeping().hasGroupNewFilesReceivedTimestamp()) {
       fileGroupStatus.setGroupAddedTimestampInSeconds(
-              dataFileGroup.getBookkeeping().getGroupNewFilesReceivedTimestamp() / 1000);
+          dataFileGroup.getBookkeeping().getGroupNewFilesReceivedTimestamp() / 1000);
     } else {
       fileGroupStatus.setGroupAddedTimestampInSeconds(-1);
     }
@@ -119,7 +119,7 @@ public class FileGroupStatsLogger {
       fileGroupStatus.setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.COMPLETE);
       if (dataFileGroup.getBookkeeping().hasGroupDownloadedTimestampInMillis()) {
         fileGroupStatus.setGroupDownloadedTimestampInSeconds(
-                dataFileGroup.getBookkeeping().getGroupDownloadedTimestampInMillis() / 1000);
+            dataFileGroup.getBookkeeping().getGroupDownloadedTimestampInMillis() / 1000);
       } else {
         fileGroupStatus.setGroupDownloadedTimestampInSeconds(-1);
       }
@@ -127,19 +127,19 @@ public class FileGroupStatsLogger {
     } else {
       fileGroupStatus.setGroupDownloadedTimestampInSeconds(-1);
       return PropagatedFutures.transform(
-              fileGroupManager.getFileGroupDownloadStatus(dataFileGroup),
-              status -> {
-                if (status == GroupDownloadStatus.DOWNLOADED || status == GroupDownloadStatus.PENDING) {
-                  // Log pending even if verify returns downloaded, as it will be marked as
-                  // completed in the next periodic task.
-                  fileGroupStatus.setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.PENDING);
-                } else {
-                  // TODO(b/73490689): Log the reason for failure along with this.
-                  fileGroupStatus.setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.FAILED);
-                }
-                return fileGroupStatus.build();
-              },
-              sequentialControlExecutor);
+          fileGroupManager.getFileGroupDownloadStatus(dataFileGroup),
+          status -> {
+            if (status == GroupDownloadStatus.DOWNLOADED || status == GroupDownloadStatus.PENDING) {
+              // Log pending even if verify returns downloaded, as it will be marked as
+              // completed in the next periodic task.
+              fileGroupStatus.setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.PENDING);
+            } else {
+              // TODO(b/73490689): Log the reason for failure along with this.
+              fileGroupStatus.setFileGroupDownloadStatus(MddFileGroupDownloadStatus.Code.FAILED);
+            }
+            return fileGroupStatus.build();
+          },
+          sequentialControlExecutor);
     }
   }
 }

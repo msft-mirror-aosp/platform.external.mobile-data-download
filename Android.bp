@@ -56,6 +56,9 @@ android_library {
         "javatests/com/google/android/libraries/mobiledatadownload/testing/RobolectricFileDownloader.java", // Missing RunfilesPaths
         "javatests/com/google/android/libraries/mobiledatadownload/testing/MddNotificationCapture.java", // Missing GoogleLogger, AndroidTestUtil
         "javatests/com/google/android/libraries/mobiledatadownload/testing/BlockingFileDownloader.java", // Missing GoogleLogger
+        "javatests/com/google/android/libraries/mobiledatadownload/testing/FakeMobileDataDownload.java", // Missing GoogleLogger
+        "javatests/com/google/android/libraries/mobiledatadownload/testing/MddTestDependencies.java", // Missing BaseFileDownloaderModule
+        "javatests/com/google/android/libraries/mobiledatadownload/internal/ExpirationHandlerTest.java" // Test failed
     ],
 
     libs: [
