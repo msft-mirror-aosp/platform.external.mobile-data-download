@@ -17,6 +17,7 @@ package com.google.android.libraries.mobiledatadownload.internal;
 
 import static com.google.android.libraries.mobiledatadownload.internal.SharedFileManager.MDD_SHARED_FILE_MANAGER_METADATA;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.util.concurrent.Futures.immediateFuture;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -32,6 +34,16 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import androidx.test.core.app.ApplicationProvider;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
+import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal.AllowedReaders;
+import com.google.mobiledatadownload.internal.MetadataProto.DeltaFile;
+import com.google.mobiledatadownload.internal.MetadataProto.DeltaFile.DiffDecoder;
+import com.google.mobiledatadownload.internal.MetadataProto.DownloadConditions;
+import com.google.mobiledatadownload.internal.MetadataProto.FileStatus;
+import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
+import com.google.mobiledatadownload.internal.MetadataProto.NewFileKey;
+import com.google.mobiledatadownload.internal.MetadataProto.SharedFile;
 import com.google.android.libraries.mobiledatadownload.DownloadException;
 import com.google.android.libraries.mobiledatadownload.DownloadException.DownloadResultCode;
 import com.google.android.libraries.mobiledatadownload.FileSource;
@@ -56,16 +68,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
-import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
-import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal.AllowedReaders;
-import com.google.mobiledatadownload.internal.MetadataProto.DeltaFile;
-import com.google.mobiledatadownload.internal.MetadataProto.DeltaFile.DiffDecoder;
-import com.google.mobiledatadownload.internal.MetadataProto.DownloadConditions;
-import com.google.mobiledatadownload.internal.MetadataProto.FileStatus;
-import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
-import com.google.mobiledatadownload.internal.MetadataProto.NewFileKey;
-import com.google.mobiledatadownload.internal.MetadataProto.SharedFile;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
 import com.google.protobuf.ByteString;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -118,6 +121,7 @@ public class SharedFileManagerTest {
   private static final String TEST_GROUP = "test-group";
   private static final int VERSION_NUMBER = 7;
   private static final long BUILD_ID = 0;
+  private static final String VARIANT_ID = "";
   private static final DataFileGroupInternal FILE_GROUP =
       MddTestUtil.createDataFileGroupInternal(TEST_GROUP, 1).toBuilder()
           .setFileGroupVersionNumber(VERSION_NUMBER)
@@ -135,6 +139,7 @@ public class SharedFileManagerTest {
   private File privateDirectory;
   private Optional<DeltaDecoder> deltaDecoder;
   private final TestFlags flags = new TestFlags();
+
   @Mock SilentFeedback mockSilentFeedback;
   @Mock MddFileDownloader mockDownloader;
   @Mock DownloadProgressMonitor mockDownloadMonitor;
@@ -154,6 +159,8 @@ public class SharedFileManagerTest {
         new SynchronousFileStorage(
             Arrays.asList(AndroidFileBackend.builder(context).build(), mockBackend),
             ImmutableList.of(new CompressTransform()));
+
+    when(fileGroupsMetadata.read(any())).thenReturn(immediateFuture(null));
 
     sharedFilesMetadata =
         new SharedPreferencesSharedFilesMetadata(
@@ -254,20 +261,19 @@ public class SharedFileManagerTest {
     assertThat(sharedFilesMetadata.read(newFileKey).get()).isNull();
   }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void testRemoveFileEntry_nonexistentFile() throws Exception {
-//     DataFile file = MddTestUtil.createDataFile("fileId", 0);
+  @Test
+  public void testRemoveFileEntry_nonexistentFile() throws Exception {
+    DataFile file = MddTestUtil.createDataFile("fileId", 0);
 
-//     // Try to unsubscribe from a file that was never subscribed to and ensure that this won't add
-//     // an entry for the file.
-//     NewFileKey newFileKey =
-//         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
-//     assertThat(sfm.removeFileEntry(newFileKey).get()).isFalse();
-//     assertThat(sharedFilesMetadata.read(newFileKey).get()).isNull();
+    // Try to unsubscribe from a file that was never subscribed to and ensure that this won't add
+    // an entry for the file.
+    NewFileKey newFileKey =
+        SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
+    assertThat(sfm.removeFileEntry(newFileKey).get()).isFalse();
+    assertThat(sharedFilesMetadata.read(newFileKey).get()).isNull();
 
-//     verifyNoInteractions(mockDownloader);
-//   }
+    verifyNoInteractions(mockDownloader);
+  }
 
   @Test
   public void testRemoveFileEntry_partialDownloadFileNotDeleted() throws Exception {
@@ -290,7 +296,7 @@ public class SharedFileManagerTest {
     // The partial download file should be deleted
     assertThat(onDeviceFile.exists()).isTrue();
 
-    verify(mockDownloader).stopDownloading(uri);
+    verify(mockDownloader).stopDownloading(newFileKey.getChecksum(), uri);
   }
 
   @Test
@@ -307,6 +313,7 @@ public class SharedFileManagerTest {
     Uri fileUri = sfm.getOnDeviceUri(newFileKey).get();
     when(fileGroupsMetadata.read(GROUP_KEY)).thenReturn(Futures.immediateFuture(FILE_GROUP));
     when(mockDownloader.startCopying(
+            eq(newFileKey.getChecksum()),
             eq(fileUri),
             eq(file.getUrlToDownload()),
             eq(file.getByteSize()),
@@ -339,7 +346,8 @@ public class SharedFileManagerTest {
     sfm.startImport(GROUP_KEY, file, newFileKey, DOWNLOAD_CONDITIONS, inlineSource).get();
     onDeviceFile.delete();
 
-    verify(mockDownloader, times(0)).startCopying(any(), any(), anyInt(), any(), any(), any());
+    verify(mockDownloader, times(0))
+        .startCopying(any(), any(), any(), anyInt(), any(), any(), any());
   }
 
   @Test
@@ -400,9 +408,11 @@ public class SharedFileManagerTest {
 
     when(fileGroupsMetadata.read(GROUP_KEY)).thenReturn(Futures.immediateFuture(FILE_GROUP));
     when(mockDownloader.startDownloading(
+            eq(newFileKey.getChecksum()),
             eq(GROUP_KEY),
             eq(VERSION_NUMBER),
             eq(BUILD_ID),
+            eq(VARIANT_ID),
             eq(fileUri),
             eq(file.getUrlToDownload()),
             eq(file.getByteSize()),
@@ -418,7 +428,7 @@ public class SharedFileManagerTest {
             newFileKey,
             DOWNLOAD_CONDITIONS,
             TRAFFIC_TAG,
-            /*extraHttpHeaders = */ ImmutableList.of())
+            /* extraHttpHeaders= */ ImmutableList.of())
         .get();
 
     SharedFile sharedFile = sharedFilesMetadata.read(newFileKey).get();
@@ -448,7 +458,7 @@ public class SharedFileManagerTest {
     // The file should not be deleted by the SFM because deletion is handled by ExpirationHandler.
     assertThat(onDeviceFile.exists()).isTrue();
 
-    verify(mockDownloader).stopDownloading(uri);
+    verify(mockDownloader).stopDownloading(newFileKey.getChecksum(), uri);
   }
 
   @Test
@@ -471,7 +481,7 @@ public class SharedFileManagerTest {
                         newFileKey,
                         DOWNLOAD_CONDITIONS,
                         TRAFFIC_TAG,
-                        /* extraHttpHeaders = */ ImmutableList.of())
+                        /* extraHttpHeaders= */ ImmutableList.of())
                     .get());
     assertThat(ex).hasCauseThat().isInstanceOf(DownloadException.class);
     DownloadException dex = (DownloadException) ex.getCause();
@@ -479,30 +489,29 @@ public class SharedFileManagerTest {
         .isEqualTo(DownloadResultCode.INVALID_INLINE_FILE_URL_SCHEME);
   }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void testStartDownload_unsubscribedFile() {
-//     DataFile file = MddTestUtil.createDataFile("fileId", 0);
-//     NewFileKey newFileKey =
-//         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
+  @Test
+  public void testStartDownload_unsubscribedFile() {
+    DataFile file = MddTestUtil.createDataFile("fileId", 0);
+    NewFileKey newFileKey =
+        SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
 
-//     ExecutionException ex =
-//         Assert.assertThrows(
-//             ExecutionException.class,
-//             () ->
-//                 sfm.startDownload(
-//                         GROUP_KEY,
-//                         file,
-//                         newFileKey,
-//                         DOWNLOAD_CONDITIONS,
-//                         TRAFFIC_TAG,
-//                         /*extraHttpHeaders = */ ImmutableList.of())
-//                     .get());
-//     assertThat(ex).hasCauseThat().isInstanceOf(DownloadException.class);
-//     assertThat(ex).hasMessageThat().contains("SHARED_FILE_NOT_FOUND_ERROR");
+    ExecutionException ex =
+        Assert.assertThrows(
+            ExecutionException.class,
+            () ->
+                sfm.startDownload(
+                        GROUP_KEY,
+                        file,
+                        newFileKey,
+                        DOWNLOAD_CONDITIONS,
+                        TRAFFIC_TAG,
+                        /* extraHttpHeaders= */ ImmutableList.of())
+                    .get());
+    assertThat(ex).hasCauseThat().isInstanceOf(DownloadException.class);
+    assertThat(ex).hasMessageThat().contains("SHARED_FILE_NOT_FOUND_ERROR");
 
-//     verifyNoInteractions(mockDownloader);
-//   }
+    verifyNoInteractions(mockDownloader);
+  }
 
   @Test
   public void testStartDownload_newFile() throws Exception {
@@ -514,9 +523,11 @@ public class SharedFileManagerTest {
     Uri fileUri = sfm.getOnDeviceUri(newFileKey).get();
     when(fileGroupsMetadata.read(GROUP_KEY)).thenReturn(Futures.immediateFuture(FILE_GROUP));
     when(mockDownloader.startDownloading(
+            eq(newFileKey.getChecksum()),
             eq(GROUP_KEY),
             eq(VERSION_NUMBER),
             eq(BUILD_ID),
+            eq(VARIANT_ID),
             eq(fileUri),
             eq(file.getUrlToDownload()),
             eq(file.getByteSize()),
@@ -532,54 +543,52 @@ public class SharedFileManagerTest {
             newFileKey,
             DOWNLOAD_CONDITIONS,
             TRAFFIC_TAG,
-            /* extraHttpHeaders = */ ImmutableList.of())
+            /* extraHttpHeaders= */ ImmutableList.of())
         .get();
 
     SharedFile sharedFile = sharedFilesMetadata.read(newFileKey).get();
     assertThat(sharedFile.getFileStatus()).isEqualTo(FileStatus.DOWNLOAD_IN_PROGRESS);
   }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void testStartDownload_downloadedFile() throws Exception {
-//     DataFile file = MddTestUtil.createDataFile("fileId", 0);
-//     NewFileKey newFileKey =
-//         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
+  @Test
+  public void testStartDownload_downloadedFile() throws Exception {
+    DataFile file = MddTestUtil.createDataFile("fileId", 0);
+    NewFileKey newFileKey =
+        SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
 
-//     assertThat(sfm.reserveFileEntry(newFileKey).get()).isTrue();
-//     File onDeviceFile = simulateDownload(file, getLastFileName(), AllowedReaders.ALL_GOOGLE_APPS);
-//     changeFileStatusAs(newFileKey, FileStatus.DOWNLOAD_COMPLETE);
+    assertThat(sfm.reserveFileEntry(newFileKey).get()).isTrue();
+    File onDeviceFile = simulateDownload(file, getLastFileName(), AllowedReaders.ALL_GOOGLE_APPS);
+    changeFileStatusAs(newFileKey, FileStatus.DOWNLOAD_COMPLETE);
 
-//     // The file is already downloaded, so we should just return DOWNLOADED.
-//     sfm.startDownload(
-//             GROUP_KEY,
-//             file,
-//             newFileKey,
-//             DOWNLOAD_CONDITIONS,
-//             TRAFFIC_TAG,
-//             /* extraHttpHeaders = */ ImmutableList.of())
-//         .get();
-//     onDeviceFile.delete();
+    // The file is already downloaded, so we should just return DOWNLOADED.
+    sfm.startDownload(
+            GROUP_KEY,
+            file,
+            newFileKey,
+            DOWNLOAD_CONDITIONS,
+            TRAFFIC_TAG,
+            /* extraHttpHeaders= */ ImmutableList.of())
+        .get();
+    onDeviceFile.delete();
 
-//     verify(mockDownloadMonitor).notifyCurrentFileSize(TEST_GROUP, file.getByteSize());
-//     verifyNoInteractions(mockDownloader);
-//   }
+    verify(mockDownloadMonitor).notifyCurrentFileSize(TEST_GROUP, file.getByteSize());
+    verifyNoInteractions(mockDownloader);
+  }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void testVerifyDownload_nonExistentFile() throws Exception {
-//     DataFile file = MddTestUtil.createDataFile("fileId", 0);
-//     NewFileKey newFileKey =
-//         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
+  @Test
+  public void testVerifyDownload_nonExistentFile() throws Exception {
+    DataFile file = MddTestUtil.createDataFile("fileId", 0);
+    NewFileKey newFileKey =
+        SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
 
-//     ExecutionException ex =
-//         Assert.assertThrows(ExecutionException.class, () -> sfm.getFileStatus(newFileKey).get());
-//     assertThat(ex).hasCauseThat().isInstanceOf(SharedFileMissingException.class);
-//     ex = Assert.assertThrows(ExecutionException.class, () -> sfm.getOnDeviceUri(newFileKey).get());
-//     assertThat(ex).hasCauseThat().isInstanceOf(SharedFileMissingException.class);
+    ExecutionException ex =
+        Assert.assertThrows(ExecutionException.class, () -> sfm.getFileStatus(newFileKey).get());
+    assertThat(ex).hasCauseThat().isInstanceOf(SharedFileMissingException.class);
+    ex = Assert.assertThrows(ExecutionException.class, () -> sfm.getOnDeviceUri(newFileKey).get());
+    assertThat(ex).hasCauseThat().isInstanceOf(SharedFileMissingException.class);
 
-//     verifyNoInteractions(mockDownloader);
-//   }
+    verifyNoInteractions(mockDownloader);
+  }
 
   @Test
   public void testVerifyDownload_fileDownloaded() throws Exception {
@@ -595,41 +604,39 @@ public class SharedFileManagerTest {
     assertThat(sfm.getFileStatus(newFileKey).get()).isEqualTo(FileStatus.DOWNLOAD_COMPLETE);
   }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void testVerifyDownload_downloadNotAttempted() throws Exception {
-//     DataFile file = MddTestUtil.createDataFile("fileId", 0);
-//     NewFileKey newFileKey =
-//         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
+  @Test
+  public void testVerifyDownload_downloadNotAttempted() throws Exception {
+    DataFile file = MddTestUtil.createDataFile("fileId", 0);
+    NewFileKey newFileKey =
+        SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
 
-//     assertThat(sfm.reserveFileEntry(newFileKey).get()).isTrue();
+    assertThat(sfm.reserveFileEntry(newFileKey).get()).isTrue();
 
-//     assertThat(sfm.getFileStatus(newFileKey).get()).isEqualTo(FileStatus.SUBSCRIBED);
+    assertThat(sfm.getFileStatus(newFileKey).get()).isEqualTo(FileStatus.SUBSCRIBED);
 
-//     // getOnDeviceUri will populate the onDeviceUri even download was not attempted.
-//     assertThat(sfm.getOnDeviceUri(newFileKey).toString()).isNotEmpty();
+    // getOnDeviceUri will populate the onDeviceUri even download was not attempted.
+    assertThat(sfm.getOnDeviceUri(newFileKey).toString()).isNotEmpty();
 
-//     verifyNoInteractions(mockDownloader);
-//   }
+    verifyNoInteractions(mockDownloader);
+  }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void testVerifyDownload_alreadyDownloaded() throws Exception {
-//     DataFile file = MddTestUtil.createDataFile("fileId", 0);
-//     NewFileKey newFileKey =
-//         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
+  @Test
+  public void testVerifyDownload_alreadyDownloaded() throws Exception {
+    DataFile file = MddTestUtil.createDataFile("fileId", 0);
+    NewFileKey newFileKey =
+        SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
 
-//     assertThat(sfm.reserveFileEntry(newFileKey).get()).isTrue();
-//     File onDeviceFile = simulateDownload(file, getLastFileName(), AllowedReaders.ALL_GOOGLE_APPS);
-//     changeFileStatusAs(newFileKey, FileStatus.DOWNLOAD_COMPLETE);
+    assertThat(sfm.reserveFileEntry(newFileKey).get()).isTrue();
+    File onDeviceFile = simulateDownload(file, getLastFileName(), AllowedReaders.ALL_GOOGLE_APPS);
+    changeFileStatusAs(newFileKey, FileStatus.DOWNLOAD_COMPLETE);
 
-//     assertThat(sfm.getFileStatus(newFileKey).get()).isEqualTo(FileStatus.DOWNLOAD_COMPLETE);
-//     assertThat(sfm.getOnDeviceUri(newFileKey).get())
-//         .isEqualTo(AndroidUri.builder(context).fromFile(onDeviceFile).build());
+    assertThat(sfm.getFileStatus(newFileKey).get()).isEqualTo(FileStatus.DOWNLOAD_COMPLETE);
+    assertThat(sfm.getOnDeviceUri(newFileKey).get())
+        .isEqualTo(AndroidUri.builder(context).fromFile(onDeviceFile).build());
 
-//     onDeviceFile.delete();
-//     verifyNoInteractions(mockDownloader);
-//   }
+    onDeviceFile.delete();
+    verifyNoInteractions(mockDownloader);
+  }
 
   @Test
   public void findNoDeltaFile_withNoBaseFileOnDevice() throws Exception {
@@ -756,7 +763,7 @@ public class SharedFileManagerTest {
 
     assertThat(onDevicePublicFile.exists()).isFalse();
     verify(mockBackend, never()).deleteFile(any());
-    verify(eventLogger, never()).logEventSampled(0);
+    verify(eventLogger, never()).logEventSampled(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED);
   }
 
   @Test
@@ -766,9 +773,9 @@ public class SharedFileManagerTest {
 
     // Create three files, one downloaded, the other currently being downloaded and one shared with
     // the Android Blob Sharing Service.
-    DataFile downloadedFile = MddTestUtil.createDataFile("file", /* fileIndex = */ 0);
-    DataFile registeredFile = MddTestUtil.createDataFile("registered-file", /* fileIndex = */ 1);
-    DataFile sharedFile = MddTestUtil.createSharedDataFile("shared-file", /* fileIndex = */ 2);
+    DataFile downloadedFile = MddTestUtil.createDataFile("file", /* fileIndex= */ 0);
+    DataFile registeredFile = MddTestUtil.createDataFile("registered-file", /* fileIndex= */ 1);
+    DataFile sharedFile = MddTestUtil.createSharedDataFile("shared-file", /* fileIndex= */ 2);
 
     NewFileKey downloadedKey =
         SharedFilesMetadata.createKeyFromDataFile(downloadedFile, AllowedReaders.ALL_GOOGLE_APPS);
@@ -804,24 +811,23 @@ public class SharedFileManagerTest {
     assertThat(onDevicePublicFile.exists()).isFalse();
     verify(mockBackend).deleteFile(allLeasesUri);
 
-    verify(eventLogger).logEventSampled(0);
+    verify(eventLogger).logEventSampled(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED);
   }
 
-// TODO: (b/239218521) Test will be ready once mockto v4 is available
-//   @Test
-//   public void cancelDownload_onDownloadedFile() throws Exception {
-//     DataFile downloadedFile = MddTestUtil.createDataFile("downloaded-file", 0);
-//     NewFileKey downloadedKey =
-//         SharedFilesMetadata.createKeyFromDataFile(downloadedFile, AllowedReaders.ALL_GOOGLE_APPS);
+  @Test
+  public void cancelDownload_onDownloadedFile() throws Exception {
+    DataFile downloadedFile = MddTestUtil.createDataFile("downloaded-file", 0);
+    NewFileKey downloadedKey =
+        SharedFilesMetadata.createKeyFromDataFile(downloadedFile, AllowedReaders.ALL_GOOGLE_APPS);
 
-//     assertThat(sfm.reserveFileEntry(downloadedKey).get()).isTrue();
-//     changeFileStatusAs(downloadedKey, FileStatus.DOWNLOAD_COMPLETE);
+    assertThat(sfm.reserveFileEntry(downloadedKey).get()).isTrue();
+    changeFileStatusAs(downloadedKey, FileStatus.DOWNLOAD_COMPLETE);
 
-//     // Calling cancelDownload on downloaded file is a no-op.
-//     sfm.cancelDownload(downloadedKey).get();
+    // Calling cancelDownload on downloaded file is a no-op.
+    sfm.cancelDownload(downloadedKey).get();
 
-//     verifyNoInteractions(mockDownloader);
-//   }
+    verifyNoInteractions(mockDownloader);
+  }
 
   @Test
   public void cancelDownload_onRegisteredFile() throws Exception {
@@ -845,12 +851,12 @@ public class SharedFileManagerTest {
             mockSilentFeedback,
             /* instanceId= */ Optional.absent(),
             false);
-    verify(mockDownloader).stopDownloading(onDeviceUri);
+    verify(mockDownloader).stopDownloading(registeredKey.getChecksum(), onDeviceUri);
   }
 
   @Test
   public void testGetSharedFile() throws Exception {
-    DataFile file = MddTestUtil.createDataFile("fileId", /* fileIndex = */ 0);
+    DataFile file = MddTestUtil.createDataFile("fileId", /* fileIndex= */ 0);
     NewFileKey newFileKey =
         SharedFilesMetadata.createKeyFromDataFile(file, AllowedReaders.ALL_GOOGLE_APPS);
 

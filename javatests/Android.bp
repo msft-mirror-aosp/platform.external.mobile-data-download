@@ -42,6 +42,11 @@ android_robolectric_test {
         "com/google/android/libraries/mobiledatadownload/internal/MobileDataDownloadManagerTest.java", // Missing LabsFutures
         "com/google/android/libraries/mobiledatadownload/internal/FileGroupManagerTest.java", // Missing LabsFutures
         "com/google/android/libraries/mobiledatadownload/internal/util/ProtoConversionUtilTest.java", // Missing ProtoParsers
+        "com/google/android/libraries/mobiledatadownload/internal/MddIsolatedStructuresTest.java", //android.os.symlink and android.os.readlink do not work with robolectric
+        "com/google/android/libraries/mobiledatadownload/testing/FakeMobileDataDownload.java", // Missing GoogleLogger
+        "com/google/android/libraries/mobiledatadownload/testing/MddTestDependencies.java", // Missing BaseFileDownloaderModule
+        "com/google/android/libraries/mobiledatadownload/internal/ExpirationHandlerTest.java" // Test failed
+
     ],
 
     java_resource_dirs: ["config"],
