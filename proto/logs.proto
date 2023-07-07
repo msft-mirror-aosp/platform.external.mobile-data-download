@@ -1,3 +1,16 @@
+// Copyright 2022 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 // Logging protos for MobileDataDownload
 
 syntax = "proto2";
@@ -6,7 +19,7 @@ package mobiledatadownload.logs;
 
 import "log_enums.proto";
 
-// option jspb_use_correct_proto2_semantics = false;  // <internal>
+//option jspb_use_correct_proto2_semantics = false;  // <internal>
 option java_package = "com.google.mobiledatadownload";
 option java_outer_classname = "LogProto";
 
@@ -87,7 +100,7 @@ message DataDownloadFileGroupStats {
 
   // Whether the file group has an account associated with it or not. This will
   // allow us to slice metrics by having account or not. For more info see
-  // cs/symbol:mdi.download.internal.GroupKey.account
+  // <internal>
   optional bool has_account = 5;
 
   // The build id for the file group. Unique identifier for a file group config
@@ -164,7 +177,13 @@ message MddLogData {
   // Android client info.
   optional AndroidClientInfo android_client_info = 51;
 
-  reserved 1 to 9, 11 to 20, 22 to 31, 33 to 39, 41 to 50, 52 to 71, 73;
+  optional MddStorageStats mdd_storage_stats = 46;
+
+  // MDD download result log.
+  optional MddDownloadResultLog mdd_download_result_log = 63;
+
+  reserved 1 to 9, 11 to 20, 22 to 31, 33 to 39, 41 to 45, 47 to 50, 52 to 62,
+      64 to 71, 73;
 }
 
 // Info on sampling method used for log events. Stable sampling means if a
@@ -200,4 +219,53 @@ message StableSamplingInfo {
   // rates (e.g. a sampling rate of 101 would mean that the 1 percent cohort
   // devices would not log).
   optional bool invalid_sampling_rate_used = 4;
+}
+
+// MDD download result log.
+message MddDownloadResultLog {
+  optional MddDownloadResult.Code result = 1;
+  // File group information.
+  optional DataDownloadFileGroupStats data_download_file_group_stats = 2;
+}
+
+// MDD Storage stats
+// Next tag 9
+message MddStorageStats {
+  repeated DataDownloadFileGroupStats data_download_file_group_stats = 1;
+
+  // NOTE: The four repeated fields total_bytes_used, total_inline_bytes_used,
+  // downloaded_group_bytes_used, and downloaded_group_inline_bytes_used have
+  // the same length and an element from all fields with the same index
+  // refers to the same file group.
+
+  // total_bytes_used[x] represents the total bytes used on disk by the
+  // file group index x.
+  repeated uint64 total_bytes_used = 2;
+
+  // total_inline_bytes_used[x] represents the total bytes used on disk by
+  // _inline_ files of file group index x.
+  repeated uint64 total_inline_bytes_used = 7 [packed = true];
+
+  // Similarly, the downloaded_group_bytes_used[x]
+  // represents the bytes used in the corresponding downloaded file group.
+  repeated uint64 downloaded_group_bytes_used = 3;
+
+  // Similarly, the downloaded_group_inline_bytes_used[x] represents the
+  // bytes of _inline_ files used in the corresponding downloaded file group.
+  repeated uint64 downloaded_group_inline_bytes_used = 8 [packed = true];
+
+  // Total bytes used by all MDD file groups.
+  // Measured by adding up file sizes for all files that are known to MDD.
+  optional uint64 total_mdd_bytes_used = 4;
+
+  // Total bytes used by MDD download directory.
+  optional uint64 total_mdd_directory_bytes_used = 5;
+
+  // Number of days since this status was last logged (number of days since
+  // daily maintenance was last run).
+  //
+  // Set to -1 if there is an invalid or unknown value.
+  //
+  // See <internal> for more info.
+  optional int32 days_since_last_log = 6;
 }

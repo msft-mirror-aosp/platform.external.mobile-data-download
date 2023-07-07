@@ -18,29 +18,32 @@ package com.google.android.libraries.mobiledatadownload.internal.logging;
 import com.google.auto.value.AutoValue;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
 import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.mobiledatadownload.LogProto.MddFileGroupStatus;
+import com.google.mobiledatadownload.LogProto.MddStorageStats;
 import java.util.List;
 
 /** Interface for remote logging. */
 public interface EventLogger {
 
   /** Log an mdd event */
-  void logEventSampled(int eventCode);
+  void logEventSampled(MddClientEvent.Code eventCode);
 
   /** Log an mdd event with an associated file group. */
   void logEventSampled(
-          int eventCode,
-          String fileGroupName,
-          int fileGroupVersionNumber,
-          long buildId,
-          String variantId);
+      MddClientEvent.Code eventCode,
+      String fileGroupName,
+      int fileGroupVersionNumber,
+      long buildId,
+      String variantId);
 
   /**
    * Log an mdd event. This not sampled. Caller should make sure this method is called after
    * sampling at the passed in value of sample interval.
    */
-  void logEventAfterSample(int eventCode, int sampleInterval);
+  void logEventAfterSample(MddClientEvent.Code eventCode, int sampleInterval);
 
   /**
    * Log mdd file group stats. The buildFileGroupStats callable is only called if the event is going
@@ -52,7 +55,7 @@ public interface EventLogger {
    *     failure if the callable fails or if there is an error when logging.
    */
   ListenableFuture<Void> logMddFileGroupStats(
-          AsyncCallable<List<FileGroupStatusWithDetails>> buildFileGroupStats);
+      AsyncCallable<List<FileGroupStatusWithDetails>> buildFileGroupStats);
 
   /** Simple wrapper class for MDD file group stats and details. */
   @AutoValue
@@ -62,24 +65,26 @@ public interface EventLogger {
     abstract DataDownloadFileGroupStats fileGroupDetails();
 
     static FileGroupStatusWithDetails create(
-            MddFileGroupStatus fileGroupStatus, DataDownloadFileGroupStats fileGroupDetails) {
+        MddFileGroupStatus fileGroupStatus, DataDownloadFileGroupStats fileGroupDetails) {
       return new AutoValue_EventLogger_FileGroupStatusWithDetails(
-              fileGroupStatus, fileGroupDetails);
+          fileGroupStatus, fileGroupDetails);
     }
   }
 
   /** Log mdd api call stats. */
-  void logMddApiCallStats(Void fileGroupDetails, Void apiCallStats);
+  void logMddApiCallStats(DataDownloadFileGroupStats fileGroupDetails, Void apiCallStats);
+
+  void logMddLibApiResultLog(Void mddLibApiResultLog);
 
   /**
    * Log mdd storage stats. The buildMddStorageStats callable is only called if the event is going
    * to be logged.
    *
-   * @param buildMddStorageStats callable which builds the Void to log.
+   * @param buildMddStorageStats callable which builds the MddStorageStats to log.
    * @return a future that completes when the logging work is done. The future will complete with a
    *     failure if the callable fails or if there is an error when logging.
    */
-  ListenableFuture<Void> logMddStorageStats(AsyncCallable<Void> buildMddStorageStats);
+  ListenableFuture<Void> logMddStorageStats(AsyncCallable<MddStorageStats> buildMddStorageStats);
 
   /**
    * Log mdd network stats. The buildMddNetworkStats callable is only called if the event is going
@@ -96,25 +101,30 @@ public interface EventLogger {
 
   /** Log the network savings of MDD download features */
   void logMddNetworkSavings(
-          Void fileGroupDetails,
-          int code,
-          long fullFileSize,
-          long downloadedFileSize,
-          String fileId,
-          int deltaIndex);
+      DataDownloadFileGroupStats fileGroupDetails,
+      int code,
+      long fullFileSize,
+      long downloadedFileSize,
+      String fileId,
+      int deltaIndex);
 
   /** Log mdd download result events. */
-  void logMddDownloadResult(int code, Void fileGroupDetails);
+  void logMddDownloadResult(
+      MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails);
 
   /** Log stats of mdd {@code getFileGroup} and {@code getFileGroupByFilter} calls. */
-  void logMddQueryStats(Void fileGroupDetails);
+  void logMddQueryStats(DataDownloadFileGroupStats fileGroupDetails);
 
   /** Log mdd stats on android sharing events. */
   void logMddAndroidSharingLog(Void event);
 
   /** Log mdd download latency. */
-  void logMddDownloadLatency(Void fileGroupStats, Void downloadLatency);
+  void logMddDownloadLatency(DataDownloadFileGroupStats fileGroupStats, Void downloadLatency);
 
   /** Log mdd usage event. */
-  void logMddUsageEvent(Void fileGroupDetails, Void usageEventLog);
+  void logMddUsageEvent(DataDownloadFileGroupStats fileGroupDetails, Void usageEventLog);
+
+  /** Log new config received event. */
+  void logNewConfigReceived(
+      DataDownloadFileGroupStats fileGroupDetails, Void newConfigReceivedInfo);
 }
