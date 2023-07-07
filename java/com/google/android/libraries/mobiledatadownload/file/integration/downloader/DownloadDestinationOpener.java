@@ -72,7 +72,7 @@ public final class DownloadDestinationOpener implements Opener<DownloadDestinati
     private final SynchronousFileStorage fileStorage;
 
     private DownloadDestinationImpl(
-        Uri onDeviceUri, SynchronousFileStorage fileStorage, DownloadMetadataStore metadataStore) {
+            Uri onDeviceUri, SynchronousFileStorage fileStorage, DownloadMetadataStore metadataStore) {
       this.onDeviceUri = onDeviceUri;
       this.metadataStore = metadataStore;
       this.fileStorage = fileStorage;
@@ -87,7 +87,7 @@ public final class DownloadDestinationOpener implements Opener<DownloadDestinati
     public DownloadMetadata readMetadata() throws IOException {
       synchronized (lock) {
         Optional<DownloadMetadata> existingMetadata =
-            blockingGet(metadataStore.read(onDeviceUri), "Failed to read metadata.");
+                blockingGet(metadataStore.read(onDeviceUri), "Failed to read metadata.");
 
         // Return existing metadata, or a new instance.
         return existingMetadata.or(DownloadMetadata::create);
@@ -96,16 +96,16 @@ public final class DownloadDestinationOpener implements Opener<DownloadDestinati
 
     @Override
     public WritableByteChannel openByteChannel(long byteOffset, DownloadMetadata metadata)
-        throws IOException {
+            throws IOException {
       // Ensure that metadata is not null
       checkArgument(metadata != null, "Received null metadata to store");
       // Check that offset is in range
       long fileSize = numExistingBytes();
       checkArgument(
-          byteOffset >= 0 && byteOffset <= fileSize,
-          "Offset for write (%s) out of range of existing file size (%s bytes)",
-          byteOffset,
-          fileSize);
+              byteOffset >= 0 && byteOffset <= fileSize,
+              "Offset for write (%s) out of range of existing file size (%s bytes)",
+              byteOffset,
+              fileSize);
 
       synchronized (lock) {
         // Update metadata first.
@@ -113,8 +113,8 @@ public final class DownloadDestinationOpener implements Opener<DownloadDestinati
 
         // Use ReleasableResource to ensure channel is setup properly before returning it.
         try (ReleasableResource<RandomAccessFile> file =
-            ReleasableResource.create(
-                fileStorage.open(onDeviceUri, RandomAccessFileOpener.createForReadWrite()))) {
+                     ReleasableResource.create(
+                             fileStorage.open(onDeviceUri, RandomAccessFileOpener.createForReadWrite()))) {
           // Get channel and seek to correct offset.
           FileChannel channel = file.get().getChannel();
           channel.position(byteOffset);
@@ -143,7 +143,7 @@ public final class DownloadDestinationOpener implements Opener<DownloadDestinati
      * <p>Exceptions due to an async call failure are handled and wrapped in an IOException.
      */
     private static <V> V blockingGet(ListenableFuture<V> future, String errorMessage)
-        throws IOException {
+            throws IOException {
       try {
         return future.get(TIMEOUT_MS, MILLISECONDS);
       } catch (InterruptedException e) {
@@ -167,17 +167,17 @@ public final class DownloadDestinationOpener implements Opener<DownloadDestinati
   public DownloadDestination open(OpenContext openContext) throws IOException {
     if (openContext.hasTransforms()) {
       throw new UnsupportedFileStorageOperation(
-          "Transforms are not supported by this Opener: " + openContext.originalUri());
+              "Transforms are not supported by this Opener: " + openContext.originalUri());
     }
 
     // Check whether or not the file uri is a directory.
     if (openContext.storage().isDirectory(openContext.originalUri())) {
       throw new IOException(
-          new IllegalArgumentException("Requested file download is already a directory."));
+              new IllegalArgumentException("Requested file download is already a directory."));
     }
 
     return new DownloadDestinationImpl(
-        openContext.originalUri(), openContext.storage(), metadataStore);
+            openContext.originalUri(), openContext.storage(), metadataStore);
   }
 
   public static DownloadDestinationOpener create(DownloadMetadataStore metadataStore) {
