@@ -44,5 +44,7 @@ java_library {
     apex_available: [
         "//apex_available:platform",
         "com.android.adservices",
+        "com.android.extservices",
+        "com.android.ondevicepersonalization",
     ],
 }
