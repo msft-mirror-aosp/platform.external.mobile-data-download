@@ -573,21 +573,21 @@ message SharedFile {
 }
 
 // Metadata used by
-// com.google.android.libraries.mdi.download.MobileDataDownloadManager
+// com.google.android.libraries.mobiledatadownload.MobileDataDownloadManager
 message MobileDataDownloadManagerMetadata {
   optional bool mdd_migrated_to_offroad = 1;
   optional int32 reset_trigger = 2;
 }
 
 // Metadata used by
-// com.google.android.libraries.mdi.download.SharedFileManager
+// com.google.android.libraries.mobiledatadownload.SharedFileManager
 message SharedFileManagerMetadata {
   optional bool migrated_to_new_file_key = 1;
   optional int64 next_file_name = 2;
 }
 
 // Collects all data used by
-// com.google.android.libraries.mdi.download.internal.Migrations
+// com.google.android.libraries.mobiledatadownload.internal.Migrations
 message MigrationsStore {
   enum FileKeyVersion {
     NEW_FILE_KEY = 0;
@@ -599,7 +599,7 @@ message MigrationsStore {
 }
 
 // Collects all data used by
-// com.google.android.libraries.mdi.download.internal.FileGroupsMetadata
+// com.google.android.libraries.mobiledatadownload.internal.FileGroupsMetadata
 message FileGroupsMetadataStore {
   // Key must be a serialized GroupKey.
   map<string, DataFileGroupInternal> data_file_groups = 1;
@@ -609,7 +609,7 @@ message FileGroupsMetadataStore {
 }
 
 // Collects all data used by
-// com.google.android.libraries.mdi.download.internal.SharedFilesMetadata
+// com.google.android.libraries.mobiledatadownload.internal.SharedFilesMetadata
 message SharedFilesMetadataStore {
   // The key must be a serialized NewFileKey.
   map<string, SharedFile> shared_files = 1;
