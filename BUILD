@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# Description:
+#   Standalone Android library for downloading and managing files on device.
+
+load("//tools/build_defs/license:license.bzl", "license")
+
 package(
     default_applicable_licenses = ["//:license"],
     default_visibility = [
@@ -19,19 +24,11 @@ package(
     licenses = ["notice"],
 )
 
-proto_library(
-    name = "metadata_proto",
-    srcs = ["metadata.proto"],
-    cc_api_version = 2,
-    alwayslink = 1,
+license(
+    name = "license",
+    package_name = "mobiledatadownload",
 )
 
-java_proto_library(
-    name = "metadata_java_proto",
-    deps = [":metadata_proto"],
-)
+licenses(["notice"])
 
-java_lite_proto_library(
-    name = "metadata_java_proto_lite",
-    deps = [":metadata_proto"],
-)
+exports_files(["LICENSE"])
