@@ -22,79 +22,97 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
 import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
 import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
+import com.google.mobiledatadownload.LogProto.MddDownloadLatency;
+import com.google.mobiledatadownload.LogProto.MddLibApiResultLog;
+import com.google.mobiledatadownload.LogProto.MddNetworkStats;
 import com.google.mobiledatadownload.LogProto.MddStorageStats;
+
 import java.util.List;
 
 /** No-Op EventLogger implementation. */
 public final class NoOpEventLogger implements EventLogger {
 
-  @Override
-  public void logEventSampled(MddClientEvent.Code eventCode) {}
+    @Override
+    public void logEventSampled(MddClientEvent.Code eventCode) {
+    }
 
-  @Override
-  public void logEventSampled(
-      MddClientEvent.Code eventCode,
-      String fileGroupName,
-      int fileGroupVersionNumber,
-      long buildId,
-      String variantId) {}
+    @Override
+    public void logEventSampled(
+            MddClientEvent.Code eventCode,
+            String fileGroupName,
+            int fileGroupVersionNumber,
+            long buildId,
+            String variantId) {
+    }
 
-  @Override
-  public void logEventAfterSample(MddClientEvent.Code eventCode, int sampleInterval) {}
+    @Override
+    public void logEventAfterSample(MddClientEvent.Code eventCode, int sampleInterval) {
+    }
 
-  @Override
-  public ListenableFuture<Void> logMddFileGroupStats(
-      AsyncCallable<List<EventLogger.FileGroupStatusWithDetails>> buildFileGroupStats) {
-    return immediateVoidFuture();
-  }
+    @Override
+    public ListenableFuture<Void> logMddFileGroupStats(
+            AsyncCallable<List<EventLogger.FileGroupStatusWithDetails>> buildFileGroupStats) {
+        return immediateVoidFuture();
+    }
 
-  @Override
-  public void logMddApiCallStats(DataDownloadFileGroupStats fileGroupDetails, Void apiCallStats) {}
+    @Override
+    public void logMddApiCallStats(DataDownloadFileGroupStats fileGroupDetails, Void apiCallStats) {
+    }
 
-  @Override
-  public void logMddLibApiResultLog(Void mddLibApiResultLog) {}
+    @Override
+    public void logMddLibApiResultLog(MddLibApiResultLog mddLibApiResultLog) {
+    }
 
-  @Override
-  public ListenableFuture<Void> logMddStorageStats(
-      AsyncCallable<MddStorageStats> buildMddStorageStats) {
-    return immediateVoidFuture();
-  }
+    @Override
+    public ListenableFuture<Void> logMddStorageStats(
+            AsyncCallable<MddStorageStats> buildMddStorageStats) {
+        return immediateVoidFuture();
+    }
 
-  @Override
-  public ListenableFuture<Void> logMddNetworkStats(AsyncCallable<Void> buildMddNetworkStats) {
-    return immediateVoidFuture();
-  }
+    @Override
+    public ListenableFuture<Void> logMddNetworkStats(
+            AsyncCallable<MddNetworkStats> buildMddNetworkStats) {
+        return immediateVoidFuture();
+    }
 
-  @Override
-  public void logMddDataDownloadFileExpirationEvent(int eventCode, int count) {}
+    @Override
+    public void logMddDataDownloadFileExpirationEvent(int eventCode, int count) {
+    }
 
-  @Override
-  public void logMddNetworkSavings(
-      DataDownloadFileGroupStats fileGroupDetails,
-      int code,
-      long fullFileSize,
-      long downloadedFileSize,
-      String fileId,
-      int deltaIndex) {}
+    @Override
+    public void logMddNetworkSavings(
+            DataDownloadFileGroupStats fileGroupDetails,
+            int code,
+            long fullFileSize,
+            long downloadedFileSize,
+            String fileId,
+            int deltaIndex) {
+    }
 
-  @Override
-  public void logMddDownloadResult(
-      MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails) {}
+    @Override
+    public void logMddDownloadResult(
+            MddDownloadResult.Code code, DataDownloadFileGroupStats fileGroupDetails) {
+    }
 
-  @Override
-  public void logMddQueryStats(DataDownloadFileGroupStats fileGroupDetails) {}
+    @Override
+    public void logMddQueryStats(DataDownloadFileGroupStats fileGroupDetails) {
+    }
 
-  @Override
-  public void logMddAndroidSharingLog(Void event) {}
+    @Override
+    public void logMddAndroidSharingLog(Void event) {
+    }
 
-  @Override
-  public void logMddDownloadLatency(
-      DataDownloadFileGroupStats fileGroupStats, Void downloadLatency) {}
+    @Override
+    public void logMddDownloadLatency(
+            DataDownloadFileGroupStats fileGroupStats, MddDownloadLatency downloadLatency) {
+    }
 
-  @Override
-  public void logMddUsageEvent(DataDownloadFileGroupStats fileGroupDetails, Void usageEventLog) {}
+    @Override
+    public void logMddUsageEvent(DataDownloadFileGroupStats fileGroupDetails, Void usageEventLog) {
+    }
 
-  @Override
-  public void logNewConfigReceived(
-      DataDownloadFileGroupStats fileGroupDetails, Void newConfigReceivedInfo) {}
+    @Override
+    public void logNewConfigReceived(
+            DataDownloadFileGroupStats fileGroupDetails, Void newConfigReceivedInfo) {
+    }
 }
