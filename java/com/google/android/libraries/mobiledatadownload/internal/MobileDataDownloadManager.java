@@ -53,13 +53,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
+import com.google.mobiledatadownload.TransformProto.Transforms;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFile.ChecksumType;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
 import com.google.mobiledatadownload.internal.MetadataProto.DownloadConditions;
 import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
-import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
-import com.google.mobiledatadownload.TransformProto.Transforms;
 import com.google.protobuf.Any;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -337,7 +337,7 @@ public class MobileDataDownloadManager {
                 // downloaded, pendingGroup must be non-null.
                 DataFileGroupInternal group = checkNotNull(getDone(pendingGroupFuture));
                 eventLogger.logEventSampled(
-                    MddClientEvent.Code.EVENT_CODE_UNSPECIFIED,
+                    MddClientEvent.Code.DATA_DOWNLOAD_COMPLETE_IMMEDIATE,
                     group.getGroupName(),
                     group.getFileGroupVersionNumber(),
                     group.getBuildId(),
@@ -439,7 +439,7 @@ public class MobileDataDownloadManager {
     if (useIsolatedStructure) {
       isolatedUriMapBuilder.putAll(fileGroupManager.getIsolatedFileUris(dataFileGroup));
     }
-    ImmutableMap<DataFile, Uri> isolatedUriMap = isolatedUriMapBuilder.build();
+    ImmutableMap<DataFile, Uri> isolatedUriMap = isolatedUriMapBuilder.buildKeepingLast();
 
     return PropagatedFluentFuture.from(init())
         .transformAsync(
@@ -491,7 +491,7 @@ public class MobileDataDownloadManager {
                   finalUriMapBuilder.put(entry);
                 }
               }
-              return finalUriMapBuilder.build();
+              return finalUriMapBuilder.buildKeepingLast();
             },
             sequentialControlExecutor);
   }
