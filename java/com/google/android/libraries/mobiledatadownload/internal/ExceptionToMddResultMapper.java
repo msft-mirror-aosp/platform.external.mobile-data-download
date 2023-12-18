@@ -16,6 +16,8 @@
 package com.google.android.libraries.mobiledatadownload.internal;
 
 import com.google.android.libraries.mobiledatadownload.DownloadException;
+import com.google.mobiledatadownload.LogEnumsProto.MddLibApiResult;
+
 import java.io.IOException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -27,39 +29,40 @@ import java.util.concurrent.ExecutionException;
  */
 public final class ExceptionToMddResultMapper {
 
-  private ExceptionToMddResultMapper() {}
-
-  /**
-   * Maps Exception to appropriate int for logging.
-   *
-   * <p>If t is an ExecutionException, then the cause (t.getCause()) is mapped.
-   */
-  public static int map(Throwable t) {
-
-    Throwable cause;
-    if (t instanceof ExecutionException) {
-      cause = t.getCause();
-    } else {
-      cause = t;
+    private ExceptionToMddResultMapper() {
     }
 
-    if (cause instanceof CancellationException) {
-      return 0;
-    } else if (cause instanceof InterruptedException) {
-      return 0;
-    } else if (cause instanceof IOException) {
-      return 0;
-    } else if (cause instanceof IllegalStateException) {
-      return 0;
-    } else if (cause instanceof IllegalArgumentException) {
-      return 0;
-    } else if (cause instanceof UnsupportedOperationException) {
-      return 0;
-    } else if (cause instanceof DownloadException) {
-      return 0;
-    }
+    /**
+     * Maps Exception to appropriate MddLibApiResult.Code for logging.
+     *
+     * <p>If t is an ExecutionException, then the cause (t.getCause()) is mapped.
+     */
+    public static MddLibApiResult.Code map(Throwable t) {
 
-    // Capturing all other errors occurred during execution as unknown errors.
-    return 0;
-  }
+        Throwable cause;
+        if (t instanceof ExecutionException) {
+            cause = t.getCause();
+        } else {
+            cause = t;
+        }
+
+        if (cause instanceof CancellationException) {
+            return MddLibApiResult.Code.RESULT_CANCELLED;
+        } else if (cause instanceof InterruptedException) {
+            return MddLibApiResult.Code.RESULT_INTERRUPTED;
+        } else if (cause instanceof IOException) {
+            return MddLibApiResult.Code.RESULT_IO_ERROR;
+        } else if (cause instanceof IllegalStateException) {
+            return MddLibApiResult.Code.RESULT_ILLEGAL_STATE;
+        } else if (cause instanceof IllegalArgumentException) {
+            return MddLibApiResult.Code.RESULT_ILLEGAL_ARGUMENT;
+        } else if (cause instanceof UnsupportedOperationException) {
+            return MddLibApiResult.Code.RESULT_UNSUPPORTED_OPERATION;
+        } else if (cause instanceof DownloadException) {
+            return MddLibApiResult.Code.RESULT_DOWNLOAD_ERROR;
+        }
+
+        // Capturing all other errors occurred during execution as unknown errors.
+        return MddLibApiResult.Code.RESULT_FAILURE;
+    }
 }
