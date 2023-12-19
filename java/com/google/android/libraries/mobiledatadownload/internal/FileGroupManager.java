@@ -73,6 +73,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
+import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.mobiledatadownload.internal.MetadataProto;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFile.AndroidSharingType;
@@ -86,9 +89,6 @@ import com.google.mobiledatadownload.internal.MetadataProto.GroupKey;
 import com.google.mobiledatadownload.internal.MetadataProto.GroupKeyProperties;
 import com.google.mobiledatadownload.internal.MetadataProto.NewFileKey;
 import com.google.mobiledatadownload.internal.MetadataProto.SharedFile;
-import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
-import com.google.mobiledatadownload.LogEnumsProto.MddDownloadResult;
-import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
 import com.google.protobuf.Any;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -2344,7 +2344,7 @@ public class FileGroupManager {
       }
     }
     ImmutableMap<DataFile, NewFileKey> nonSideloadedKeyMap =
-        nonSideloadedKeyMapBuilder.build();
+        nonSideloadedKeyMapBuilder.buildKeepingLast();
 
     return PropagatedFluentFuture.from(
             sharedFileManager.getOnDeviceUris(ImmutableSet.copyOf(nonSideloadedKeyMap.values())))
@@ -2358,7 +2358,7 @@ public class FileGroupManager {
                   onDeviceUriMap.put(keyMapEntry.getKey(), nonSideloadedUriMap.get(newFileKey));
                 }
               }
-              return onDeviceUriMap.build();
+              return onDeviceUriMap.buildKeepingLast();
             },
             sequentialControlExecutor);
   }
@@ -2378,7 +2378,7 @@ public class FileGroupManager {
       isolatedFileUrisBuilder.put(
           dataFile, FileGroupUtil.appendIsolatedFileUri(isolatedRootUri, dataFile));
     }
-    return isolatedFileUrisBuilder.build();
+    return isolatedFileUrisBuilder.buildKeepingLast();
   }
 
   /**
@@ -2426,7 +2426,7 @@ public class FileGroupManager {
             TAG, isolatedUri, onDeviceUri);
       }
     }
-    return verifiedUriMapBuilder.build();
+    return verifiedUriMapBuilder.buildKeepingLast();
   }
 
   /**
@@ -2845,9 +2845,6 @@ public class FileGroupManager {
     if (!prevGroup.getAllowedReadersEnum().equals(newGroup.getAllowedReadersEnum())) {
       return Optional.of(0);
     }
-//    if (!prevGroup.getExperimentInfo().equals(newGroup.getExperimentInfo())) {
-//      return Optional.of(0);
-//    }
     return Optional.absent();
   }
 
