@@ -62,7 +62,7 @@ android_library {
     ],
 
     libs: [
-        "ub-uiautomator",
+        "androidx.test.uiautomator_uiautomator",
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "androidx.annotation_annotation",
@@ -119,7 +119,7 @@ android_library {
     ],
     visibility: [
         "//packages/modules/AdServices:__subpackages__",
-        "//packages/modules/OnDevicePersonalization:__subpackages__",
+	"//packages/modules/OnDevicePersonalization:__subpackages__",
         ":__subpackages__",
     ],
     errorprone: {

@@ -18,6 +18,7 @@ package com.google.android.libraries.mobiledatadownload.internal.logging;
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
 import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
+import com.google.mobiledatadownload.LogProto.MddDownloadLatency;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupBookkeeping;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
 
@@ -56,7 +57,7 @@ public final class DownloadStateLogger {
   public void logStarted(DataFileGroupInternal fileGroup) {
     switch (operation) {
       case DOWNLOAD:
-        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.DATA_DOWNLOAD_STARTED, fileGroup);
         break;
       case IMPORT:
         logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
@@ -89,7 +90,7 @@ public final class DownloadStateLogger {
   public void logComplete(DataFileGroupInternal fileGroup) {
     switch (operation) {
       case DOWNLOAD:
-        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.DATA_DOWNLOAD_COMPLETE, fileGroup);
         logDownloadLatency(fileGroup);
         break;
       case IMPORT:
@@ -120,7 +121,12 @@ public final class DownloadStateLogger {
     long downloadStartedTimestamp = bookkeeping.getGroupDownloadStartedTimestampInMillis();
     long downloadCompleteTimestamp = bookkeeping.getGroupDownloadedTimestampInMillis();
 
-    Void downloadLatency = null;
+    MddDownloadLatency downloadLatency =
+        MddDownloadLatency.newBuilder()
+            .setDownloadAttemptCount(bookkeeping.getDownloadStartedCount())
+            .setDownloadLatencyMs(downloadCompleteTimestamp - downloadStartedTimestamp)
+            .setTotalLatencyMs(downloadCompleteTimestamp - newFilesReceivedTimestamp)
+            .build();
 
     eventLogger.logMddDownloadLatency(fileGroupDetails, downloadLatency);
   }
