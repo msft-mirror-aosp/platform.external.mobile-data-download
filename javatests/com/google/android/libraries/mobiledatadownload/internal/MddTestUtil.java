@@ -23,8 +23,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import android.content.Context;
 import android.os.Build.VERSION;
-import android.support.test.uiautomator.UiDevice;
 import android.util.Log;
+import androidx.test.uiautomator.UiDevice;
 import com.google.mobiledatadownload.internal.MetadataProto.BaseFile;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
