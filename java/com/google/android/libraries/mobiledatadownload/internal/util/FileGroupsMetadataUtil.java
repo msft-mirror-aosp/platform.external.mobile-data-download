@@ -94,7 +94,7 @@ public final class FileGroupsMetadataUtil {
   }
 
   // TODO(b/129702287): Move away from proto based serialization.
-  public static String getSerializedGroupKey(GroupKey groupKey, Context context) {
+  public static String getSerializedGroupKey(GroupKey groupKey) {
     byte[] byteValue = groupKey.toByteArray();
     return Base64.encodeToString(byteValue, Base64.NO_PADDING | Base64.NO_WRAP);
   }
@@ -102,7 +102,8 @@ public final class FileGroupsMetadataUtil {
   /**
    * Converts a string representing a serialized GroupKey into a GroupKey.
    *
-   * @return - groupKey if able to parse stringKey properly. null if parsing fails.
+   * @return groupKey if able to parse string key properly.
+   * @throws GroupKeyDeserializationException when unable to parse string key
    */
   // TODO(b/129702287): Move away from proto based deserialization.
   public static GroupKey deserializeGroupKey(String serializedGroupKey)
@@ -110,7 +111,7 @@ public final class FileGroupsMetadataUtil {
     try {
       return SharedPreferencesUtil.parseLiteFromEncodedString(
           serializedGroupKey, GroupKey.parser());
-    } catch (InvalidProtocolBufferException e) {
+    } catch (NullPointerException | InvalidProtocolBufferException e) {
       throw new GroupKeyDeserializationException(
           "Failed to deserialize key:" + serializedGroupKey, e);
     }

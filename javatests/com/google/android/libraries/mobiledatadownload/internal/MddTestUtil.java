@@ -23,13 +23,8 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import android.content.Context;
 import android.os.Build.VERSION;
-import android.support.test.uiautomator.UiDevice;
 import android.util.Log;
-import com.google.android.apps.common.testing.util.BackdoorTestUtil;
-import com.google.mobiledatadownload.DownloadConfigProto.DataFileGroup;
-import com.google.mobiledatadownload.TransformProto.Transform;
-import com.google.mobiledatadownload.TransformProto.Transforms;
-import com.google.mobiledatadownload.TransformProto.ZipTransform;
+import androidx.test.uiautomator.UiDevice;
 import com.google.mobiledatadownload.internal.MetadataProto.BaseFile;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFile;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
@@ -38,6 +33,10 @@ import com.google.mobiledatadownload.internal.MetadataProto.DeltaFile.DiffDecode
 import com.google.mobiledatadownload.internal.MetadataProto.FileStatus;
 import com.google.mobiledatadownload.internal.MetadataProto.NewFileKey;
 import com.google.mobiledatadownload.internal.MetadataProto.SharedFile;
+import com.google.mobiledatadownload.DownloadConfigProto.DataFileGroup;
+import com.google.mobiledatadownload.TransformProto.Transform;
+import com.google.mobiledatadownload.TransformProto.Transforms;
+import com.google.mobiledatadownload.TransformProto.ZipTransform;
 import com.google.protobuf.MessageLite;
 import java.io.IOException;
 import java.util.Collections;
@@ -103,7 +102,7 @@ public class MddTestUtil {
     DataFileGroupInternal.Builder dataFileGroupInternal =
         DataFileGroupInternal.newBuilder().setGroupName(fileGroupName);
     for (int i = 0; i < fileCount; ++i) {
-      dataFileGroupInternal.addFile(createSharedDataFile(fileGroupName, /* fileIndex = */ i));
+      dataFileGroupInternal.addFile(createSharedDataFile(fileGroupName, /* fileIndex= */ i));
     }
     return dataFileGroupInternal.build();
   }
@@ -252,24 +251,24 @@ public class MddTestUtil {
   }
 
   /** For API-level 19+, it moves the time forward by {@code timeInMillis} milliseconds. */
-  public static void timeTravel(Context context, long timeInMillis) {
-    if (VERSION.SDK_INT == 18) {
-      throw new UnsupportedOperationException(
-          "Time travel does not work on API-level 18 - b/31132161. "
-              + "You need to disable this test on API-level 18. Example: cl/131498720");
-    }
-
-    final long timestampBeforeTravel = System.currentTimeMillis();
-    if (!BackdoorTestUtil.advanceTime(context, timeInMillis)) {
-      // On some API levels (>23) the call returns false even if the time changed. Have a manual
-      // validation that the time changed instead.
-      if (VERSION.SDK_INT >= 23) {
-        assertThat(System.currentTimeMillis()).isAtLeast(timestampBeforeTravel + timeInMillis);
-      } else {
-        throw new IllegalStateException("Time Travel was not successful");
-      }
-    }
-  }
+//  public static void timeTravel(Context context, long timeInMillis) {
+//    if (VERSION.SDK_INT == 18) {
+//      throw new UnsupportedOperationException(
+//          "Time travel does not work on API-level 18 - b/31132161. "
+//              + "You need to disable this test on API-level 18. Example: cl/131498720");
+//    }
+//
+//    final long timestampBeforeTravel = System.currentTimeMillis();
+//    if (!BackdoorTestUtil.advanceTime(context, timeInMillis)) {
+//      // On some API levels (>23) the call returns false even if the time changed. Have a manual
+//      // validation that the time changed instead.
+//      if (VERSION.SDK_INT >= 23) {
+//        assertThat(System.currentTimeMillis()).isAtLeast(timestampBeforeTravel + timeInMillis);
+//      } else {
+//        throw new IllegalStateException("Time Travel was not successful");
+//      }
+//    }
+//  }
 
   /**
    * @return the time (in seconds) that is n days from the current time

@@ -17,7 +17,6 @@ package com.google.android.libraries.mobiledatadownload.internal.logging;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.util.Locale;
@@ -25,7 +24,6 @@ import java.util.Random;
 import javax.annotation.Nullable;
 
 /** Utility class for logging with the "MDD" tag. */
-@CanIgnoreReturnValue
 public class LogUtil {
   public static final String TAG = "MDD";
 

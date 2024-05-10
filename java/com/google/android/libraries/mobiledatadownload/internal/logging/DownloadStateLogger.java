@@ -15,8 +15,10 @@
  */
 package com.google.android.libraries.mobiledatadownload.internal.logging;
 
-import androidx.annotation.VisibleForTesting;
 import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.mobiledatadownload.LogEnumsProto.MddClientEvent;
+import com.google.mobiledatadownload.LogProto.DataDownloadFileGroupStats;
+import com.google.mobiledatadownload.LogProto.MddDownloadLatency;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupBookkeeping;
 import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInternal;
 
@@ -25,8 +27,8 @@ import com.google.mobiledatadownload.internal.MetadataProto.DataFileGroupInterna
 public final class DownloadStateLogger {
   private static final String TAG = "FileGroupStatusLogger";
 
-  @VisibleForTesting
-  enum Operation {
+  /** The type of operation for which the logger will log events. */
+  public enum Operation {
     DOWNLOAD,
     IMPORT,
   };
@@ -47,13 +49,18 @@ public final class DownloadStateLogger {
     return new DownloadStateLogger(eventLogger, Operation.IMPORT);
   }
 
+  /** Gets the operation associated with this logger. */
+  public Operation getOperation() {
+    return operation;
+  }
+
   public void logStarted(DataFileGroupInternal fileGroup) {
     switch (operation) {
       case DOWNLOAD:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.DATA_DOWNLOAD_STARTED, fileGroup);
         break;
       case IMPORT:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
         break;
     }
   }
@@ -61,10 +68,10 @@ public final class DownloadStateLogger {
   public void logPending(DataFileGroupInternal fileGroup) {
     switch (operation) {
       case DOWNLOAD:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
         break;
       case IMPORT:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
         break;
     }
   }
@@ -72,10 +79,10 @@ public final class DownloadStateLogger {
   public void logFailed(DataFileGroupInternal fileGroup) {
     switch (operation) {
       case DOWNLOAD:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
         break;
       case IMPORT:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
         break;
     }
   }
@@ -83,11 +90,11 @@ public final class DownloadStateLogger {
   public void logComplete(DataFileGroupInternal fileGroup) {
     switch (operation) {
       case DOWNLOAD:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.DATA_DOWNLOAD_COMPLETE, fileGroup);
         logDownloadLatency(fileGroup);
         break;
       case IMPORT:
-        logEventWithDataFileGroup(0, fileGroup);
+        logEventWithDataFileGroup(MddClientEvent.Code.EVENT_CODE_UNSPECIFIED, fileGroup);
         break;
     }
   }
@@ -99,19 +106,33 @@ public final class DownloadStateLogger {
       return;
     }
 
-    Void fileGroupDetails = null;
+    DataDownloadFileGroupStats fileGroupDetails =
+        DataDownloadFileGroupStats.newBuilder()
+            .setOwnerPackage(fileGroup.getOwnerPackage())
+            .setFileGroupName(fileGroup.getGroupName())
+            .setFileGroupVersionNumber(fileGroup.getFileGroupVersionNumber())
+            .setFileCount(fileGroup.getFileCount())
+            .setBuildId(fileGroup.getBuildId())
+            .setVariantId(fileGroup.getVariantId())
+            .build();
 
     DataFileGroupBookkeeping bookkeeping = fileGroup.getBookkeeping();
     long newFilesReceivedTimestamp = bookkeeping.getGroupNewFilesReceivedTimestamp();
     long downloadStartedTimestamp = bookkeeping.getGroupDownloadStartedTimestampInMillis();
     long downloadCompleteTimestamp = bookkeeping.getGroupDownloadedTimestampInMillis();
 
-    Void downloadLatency = null;
+    MddDownloadLatency downloadLatency =
+        MddDownloadLatency.newBuilder()
+            .setDownloadAttemptCount(bookkeeping.getDownloadStartedCount())
+            .setDownloadLatencyMs(downloadCompleteTimestamp - downloadStartedTimestamp)
+            .setTotalLatencyMs(downloadCompleteTimestamp - newFilesReceivedTimestamp)
+            .build();
 
     eventLogger.logMddDownloadLatency(fileGroupDetails, downloadLatency);
   }
 
-  private void logEventWithDataFileGroup(int code, DataFileGroupInternal fileGroup) {
+  private void logEventWithDataFileGroup(
+      MddClientEvent.Code code, DataFileGroupInternal fileGroup) {
     eventLogger.logEventSampled(
         code,
         fileGroup.getGroupName(),

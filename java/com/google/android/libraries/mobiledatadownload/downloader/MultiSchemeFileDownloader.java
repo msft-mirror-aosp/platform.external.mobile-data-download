@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.google.errorprone.annotations.CheckReturnValue;
 import java.net.MalformedURLException;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ public final class MultiSchemeFileDownloader implements FileDownloader {
     private final Map<String, FileDownloader> schemeToDownloader = new HashMap<>();
 
     /** Associates a url scheme (e.g. "http") with a specific {@link FileDownloader} delegate. */
+    @CanIgnoreReturnValue
     public MultiSchemeFileDownloader.Builder addScheme(String scheme, FileDownloader downloader) {
       schemeToDownloader.put(
           Preconditions.checkNotNull(scheme), Preconditions.checkNotNull(downloader));
@@ -57,6 +59,20 @@ public final class MultiSchemeFileDownloader implements FileDownloader {
   /** Returns a Builder for {@link MultiSchemeFileDownloader}. */
   public static Builder builder() {
     return new Builder();
+  }
+
+  /** Returns a Builder containing all registered FileDownloaders. */
+  public Builder toBuilder() {
+    final Builder builder = new Builder();
+    for (Map.Entry<String, FileDownloader> entry : schemeToDownloader.entrySet()) {
+      builder.addScheme(entry.getKey(), entry.getValue());
+    }
+    return builder;
+  }
+
+  /** Returns true if a FileDownloader is registered for the given scheme. */
+  public boolean supportsScheme(String scheme) {
+    return schemeToDownloader.containsKey(scheme);
   }
 
   private MultiSchemeFileDownloader(Builder builder) {
