@@ -68,4 +68,6 @@ android_robolectric_test {
 
     instrumentation_for: "MobileDataDownloadPlaceHolderApp",
 
+    strict_mode: false,
+
 }
