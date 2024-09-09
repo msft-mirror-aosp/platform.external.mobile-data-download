@@ -25,7 +25,7 @@ android_app {
     manifest: "com/google/android/libraries/mobiledatadownload/internal/AndroidManifest.xml",
     platform_apis: true,
     libs: [
-        "android.test.runner",
+        "android.test.runner.stubs.system",
     ]
 }
 
