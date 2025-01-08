@@ -55,7 +55,7 @@ android_robolectric_test {
 
     libs: [
         // This jar should not be included, android_robolectric_test soong tasks either ads
-        // "Robolectric_all-target" or "Robolectric_all-target_upstream" based on the "upstream"
+        // "Robolectric_all-target" or "Robolectric_all-target" based on the "upstream"
         // flag below.
         "androidx.test.core",
         "mobile_data_downloader_lib",
