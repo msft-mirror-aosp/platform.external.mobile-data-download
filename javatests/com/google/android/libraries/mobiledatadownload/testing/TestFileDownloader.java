@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Google LLC
+ * Copyright (C) 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,73 +13,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.google.android.libraries.mobiledatadownload.testing;
 
-import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
-
 import android.net.Uri;
-import android.os.Environment;
+
 import com.google.android.libraries.mobiledatadownload.downloader.DownloadConstraints;
 import com.google.android.libraries.mobiledatadownload.downloader.DownloadRequest;
 import com.google.android.libraries.mobiledatadownload.downloader.FileDownloader;
-import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
-import com.google.android.libraries.mobiledatadownload.file.backends.FileUri;
 import com.google.android.libraries.mobiledatadownload.internal.logging.LogUtil;
+import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 /**
- * A {@link FileDownloader} that "downloads" by copying the file from the testdata folder.
+ * A {@link FileDownloader} that "downloads" by copying the file from the application's assets.
  *
- * <p>The filename is the Last Path Segment of the urlToDownload. For example, the URL
- * https://www.gstatic.com/icing/idd/sample_group/step1.txt will be mapped to the file
- * testDataAbsolutePath/step1.txt.
+ * <p>The filename is the Last Path Segment of the provided `urlToDownload`. For example, the URL
+ * https://www.gstatic.com/icing/idd/sample_group/step1.txt will be mapped to the asset named
+ * "step1.txt".
  *
  * <p>Note that TestFileDownloader ignores the DownloadConditions.
  */
 public final class TestFileDownloader implements FileDownloader {
 
-  private static final String TAG = "TestDataFileDownloader";
+    private static final String TAG = "TestDataFileDownloader";
 
-  private static final String GOOGLE3_ABSOLUTE_PATH =
-      Environment.getExternalStorageDirectory() + "/googletest/test_runfiles/google3/";
+    private final FileDownloader delegateDownloader;
 
-  private final String testDataAbsolutePath;
-  private final FileDownloader delegateDownloader;
-
-  public TestFileDownloader(
-      String testDataRelativePath,
-      SynchronousFileStorage fileStorage,
-      ListeningExecutorService executor) {
-    this.testDataAbsolutePath = GOOGLE3_ABSOLUTE_PATH + testDataRelativePath;
-    this.delegateDownloader = new LocalFileDownloader(fileStorage, executor);
-  }
-
-  @Override
-  public ListenableFuture<Void> startDownloading(DownloadRequest downloadRequest) {
-    Uri fileUri = downloadRequest.fileUri();
-    String urlToDownload = downloadRequest.urlToDownload();
-    DownloadConstraints downloadConstraints = downloadRequest.downloadConstraints();
-
-    // We need to translate the real urlToDownload to the one representing the local file in
-    // testdata folder.
-    Uri uriToDownload = Uri.parse(urlToDownload.trim());
-    if (uriToDownload == null) {
-      LogUtil.e("%s: Invalid urlToDownload %s", TAG, urlToDownload);
-      return immediateVoidFuture();
+    public TestFileDownloader(
+            SynchronousFileStorage fileStorage, ListeningExecutorService executor) {
+        this.delegateDownloader = new LocalFileDownloader(fileStorage, executor);
     }
 
-    String testDataUrl =
-        FileUri.builder()
-            .setPath(testDataAbsolutePath + uriToDownload.getLastPathSegment())
-            .build()
-            .toString();
+    @Override
+    public ListenableFuture<Void> startDownloading(DownloadRequest downloadRequest) {
+        LogUtil.d(
+                "%s: startDownloading; urlToDownload: %s; uriToDownload: %s;",
+                TAG, downloadRequest.urlToDownload(), downloadRequest.fileUri());
 
-    return delegateDownloader.startDownloading(
-        DownloadRequest.newBuilder()
-            .setFileUri(fileUri)
-            .setUrlToDownload(testDataUrl)
-            .setDownloadConstraints(downloadConstraints)
-            .build());
-  }
+        Uri fileUri = downloadRequest.fileUri();
+        String urlToDownload = downloadRequest.urlToDownload();
+        Uri uriToDownload = Uri.parse(urlToDownload);
+        DownloadConstraints downloadConstraints = downloadRequest.downloadConstraints();
+
+        return delegateDownloader.startDownloading(
+                DownloadRequest.newBuilder()
+                        .setFileUri(fileUri)
+                        .setUrlToDownload(uriToDownload.getLastPathSegment())
+                        .setDownloadConstraints(downloadConstraints)
+                        .build());
+    }
 }
