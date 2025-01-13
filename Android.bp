@@ -60,7 +60,8 @@ android_library {
         "javatests/com/google/android/libraries/mobiledatadownload/testing/MddTestDependencies.java", // Missing BaseFileDownloaderModule
         "javatests/com/google/android/libraries/mobiledatadownload/internal/ExpirationHandlerTest.java", // Test failed
     ],
-
+    sdk_version: "current",
+    min_sdk_version: "30",
     libs: [
         "androidx.test.uiautomator_uiautomator",
         "androidx.test.ext.truth",
@@ -73,6 +74,7 @@ android_library {
         "checker-qual",
     ],
     visibility: [
+        "//packages/modules/AdServices/adservices/tests/unittest:__subpackages__",
         ":__subpackages__",
     ],
 }
