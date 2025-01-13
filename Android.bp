@@ -74,7 +74,7 @@ android_library {
         "checker-qual",
     ],
     visibility: [
-        "//packages/modules/AdServices/adservices/tests/unittest:__subpackages__",
+        "//packages/modules/AdServices/adservices/tests:__subpackages__",
         ":__subpackages__",
     ],
 }
