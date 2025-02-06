@@ -16,7 +16,6 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-
 //###########################################################
 // Robolectric test target for testing mdd test lib classes #
 //###########################################################
@@ -26,7 +25,7 @@ android_app {
     platform_apis: true,
     libs: [
         "android.test.runner.stubs.system",
-    ]
+    ],
 }
 
 android_robolectric_test {
@@ -48,15 +47,15 @@ android_robolectric_test {
         "com/google/android/libraries/mobiledatadownload/internal/MddIsolatedStructuresTest.java", //android.os.symlink and android.os.readlink do not work with robolectric
         "com/google/android/libraries/mobiledatadownload/testing/FakeMobileDataDownload.java", // Missing GoogleLogger
         "com/google/android/libraries/mobiledatadownload/testing/MddTestDependencies.java", // Missing BaseFileDownloaderModule
-        "com/google/android/libraries/mobiledatadownload/internal/ExpirationHandlerTest.java" // Test failed
+        "com/google/android/libraries/mobiledatadownload/internal/ExpirationHandlerTest.java", // Test failed
 
     ],
 
     java_resource_dirs: ["config"],
 
     libs: [
-        // This jar should not be included, android_robolectric_test soong tasks either ads 
-        // "Robolectric_all-target" or "Robolectric_all-target_upstream" based on the "upstream"
+        // This jar should not be included, android_robolectric_test soong tasks either ads
+        // "Robolectric_all-target" or "Robolectric_all-target" based on the "upstream"
         // flag below.
         "androidx.test.core",
         "mobile_data_downloader_lib",
@@ -64,7 +63,6 @@ android_robolectric_test {
     ],
 
     // use external/robolectric, rather than the outdated external/robolectric-shadows.
-    upstream: true,
 
     instrumentation_for: "MobileDataDownloadPlaceHolderApp",
 
