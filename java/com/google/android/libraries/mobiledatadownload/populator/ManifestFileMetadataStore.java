@@ -20,7 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mobiledatadownload.populator.MetadataProto.ManifestFileBookkeeping;
 
 /** Storage mechanism for ManifestFileBookkeeping. */
-interface ManifestFileMetadataStore {
+public interface ManifestFileMetadataStore {
   /** Returns the metadata associated with {@code manifestId} if it exists. */
   ListenableFuture<Optional<ManifestFileBookkeeping>> read(String manifestId);
 
